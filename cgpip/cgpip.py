@@ -1,13 +1,15 @@
-from .island import Island
+from .island import Island, IslandProcess
 from .chromosome import Chromosome
 import random
 import os
 import cv2
 import numpy as np
+import copy
+from multiprocessing import Queue, Process
 
 class CGPIP:
 
-    def __init__(self, graph_length, mutation_rate, size_of_mutations, num_islands, num_indiv_island, sync_interval_island, max_iterations, chromosomeOptimization):
+    def __init__(self, graph_length, mutation_rate, size_of_mutations, num_islands, num_indiv_island, sync_interval_island, max_iterations, chromosomeOptimization, islandOptimization):
         self.graph_length = graph_length
         self.mutation_rate = mutation_rate
         self.size_of_mutations = size_of_mutations
@@ -23,6 +25,7 @@ class CGPIP:
         self.num_outputs = 0
         self.chromosome = None
         self.chromosomeOptimization = chromosomeOptimization
+        self.islandOptimization = islandOptimization
         np.seterr(all='ignore')
 
     def load_data(self,input_data, output_data):
@@ -60,7 +63,16 @@ class CGPIP:
 
         for i in range(0, self.max_iterations):
 
-            if self.chromosomeOptimization==True:
+            if self.islandOptimization==True:
+                for j in range(0,self.num_islands):
+                    self.islands[j].updateFitnessIsland(self.inputs,self.outputs)
+
+                for j in range(0,self.num_islands):
+                    self.islands[j].waitForUpdateFitnessIsland()
+
+                    if self.num_run % 5 == 0:
+                        print("Island "+str(j)+" iterations "+str(self.num_run)+" fitness: "+str(self.islands[j].getBestChromosome().getFitness()))
+            elif self.chromosomeOptimization==True:
                 for j in range(0,self.num_islands):
                     self.islands[j].updateFitnessChromosome(self.inputs,self.outputs)
 

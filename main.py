@@ -11,9 +11,8 @@ if __name__ == '__main__':
     graph_length = 200
     mutation_rate = 0.1
     sync_interval_island = 0
-    num_cores = 10
 
-    cgp = CGPIP(graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True)
+    cgp = CGPIP(graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False)
 
     if os.path.exists('./chromo.txt'):
         cgp.load_chromosome('./chromo.txt')

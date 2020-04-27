@@ -117,7 +117,6 @@ class Chromosome:
         self.graph_length = graph_length
         self.output_nodes = []
         self.output_values = []
-        self.fitness = 0.0
         self.inputs_index = 0
         self.nodes = []
         self.active_nodes = []
