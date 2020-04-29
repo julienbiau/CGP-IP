@@ -33,13 +33,13 @@ class CGPIP:
 
         for filename in sorted(os.listdir(input_data)):
           input = cv2.imread(input_data+"/"+filename)
-          self.inputs.append([input[:,:,0],input[:,:,1],input[:,:,2]])
+          self.inputs.append([np.asarray(input[:,:,0],dtype="uint8"),np.asarray(input[:,:,1],dtype="uint8"),np.asarray(input[:,:,2],dtype="uint8")])
 
         self.outputs = []
 
         for filename in sorted(os.listdir(output_data)):
           output = cv2.imread(output_data+"/"+filename)
-          self.outputs.append([output[:,:,0],output[:,:,1],output[:,:,2]])
+          self.outputs.append([np.asarray(output[:,:,0],dtype="uint8"),np.asarray(output[:,:,1],dtype="uint8"),np.asarray(output[:,:,2],dtype="uint8")])
 
         self.num_inputs = 3
         self.num_outputs = 3
