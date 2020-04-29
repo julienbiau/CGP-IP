@@ -65,16 +65,22 @@ class Functions:
             return cv2.erode(np.int16(connection0),cls.ksize)
         # LAPLACE connection0
         elif func==17:
-            return connection0 #cv2.Laplacian(connection0,cv2.CV_8U) # TO CHECK
+            return cv2.Laplacian(np.uint8(connection0),cv2.CV_8U,cls.ksize)
         # CANNY connection0
         elif func==18:
-            return cv2.Canny(np.uint8(connection0),0,0) # TO CHECK
+            return cv2.Canny(np.uint8(connection0),100,200) # FIXED MIN MAX VALUES ?
         # GAUSS
         elif func==19:
-            return cv2.GaussianBlur(np.int16(connection0),cls.ksize,0) # TO CHECK
+            return cv2.GaussianBlur(np.int16(connection0),cls.ksize,0)
         # GAUSS2 parameter1 parameter2
         elif func==20:
-            return cv2.GaussianBlur(np.int16(connection0),cls.ksize,0) # TO CHECK
+            x = abs(parameter1)
+            y = abs(parameter2)
+            if x%2==0:
+                x = x + 1
+            if y%2==0:
+                y = y + 1
+            return cv2.GaussianBlur(np.int16(connection0),(abs(x),abs(y)),0)
         # MIN connection0 connection1
         elif func==21:
             return np.minimum(connection0,connection1)
@@ -96,32 +102,33 @@ class Functions:
         # NORMALIZE
         elif func==27:
             # Normalised [0,255] as integer
-            return 255*(connection0 - np.min(connection0))/np.ptp(connection0).astype(float)
+            return 255*(connection0 - np.min(connection0))/np.max(connection0).astype(float)
         # SOBEL
         elif func==28:
-            return connection0 # cv2.Sobel(np.int16(connection0),cv2.CV_8U,1,1,cls.ksize) # TO CHECK
+            return cv2.Sobel(np.int16(connection0),cv2.CV_8U,1,1,cls.ksize)
         # SOBELX
         elif func==29:
-            return connection0 # cv2.Sobel(np.int16(connection0),cv2.CV_8U,abs(parameter1),0,cls.ksize) # TO CHECK
+            return cv2.Sobel(np.int16(connection0),cv2.CV_8U,1,0,cls.ksize)
         # SOBELY
         elif func==30:
-            return connection0 # cv2.Sobel(np.int16(connection0),cv2.CV_8U,0,abs(parameter1),cls.ksize) # TO CHECK
+            return cv2.Sobel(np.int16(connection0),cv2.CV_8U,0,1,cls.ksize)
         # THRESHOLD connection0 parameter0
         elif func==31:
-            retval, dst = cv2.threshold(np.int16(connection0),parameter0,0,cv2.THRESH_TRUNC)
+            retval, dst = cv2.threshold(np.int16(connection0),abs(parameter0),0,cv2.THRESH_TRUNC)
             return dst
         # SMOOTHMEDIAN
         elif func==32:
-            return connection0
+            return cv2.medianBlur(np.int16(connection0),cls.ksize[0])
         # SMOOTHBILATERAL
         elif func==33:
-            return connection0
+            return cv2.bilateralFilter(np.uint8(connection0),parameter1,parameter2,parameter2)
         # SMOOTHBLUR
         elif func==34:
-            return connection0
+            return cv2.blur(np.int16(connection0),cls.ksize)
         # UNSHARPEN
         elif func==35:
-            return connection0
+            kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            return cv2.filter2D(np.int16(connection0), -1, kernel)
         # SHIFT
         elif func==36:
             num_rows, num_cols = connection0.shape[:2]
@@ -153,10 +160,14 @@ class Functions:
             return cv2.resize(cv2.resize(np.int16(connection0), (int(width/(abs(parameter0)+1)), int(height/(abs(parameter0)+1))), interpolation = cv2.INTER_AREA) , (width, height), interpolation = cv2.INTER_AREA) 
         # GABOR
         elif func==42:
-            return connection0
+            g_kernel = cv2.getGaborKernel(cls.ksize, gabor_filter_frequency, gabor_filter_orientation, 10.0, 0.5) # CHECK 10 and 0.5 VALUES
+            return cv2.filter2D(np.int16(connection0), -1, g_kernel)
         # RESIZETHENGABOR
         elif func==43:
-            return connection0
+            height, width = connection0.shape[:2] # TO CHECK +1 to only reduce
+            tmp = cv2.resize(cv2.resize(np.int16(connection0), (int(width/(abs(parameter0)+1)), int(height/(abs(parameter0)+1))), interpolation = cv2.INTER_AREA) , (width, height), interpolation = cv2.INTER_AREA) 
+            g_kernel = cv2.getGaborKernel(cls.ksize, gabor_filter_frequency, gabor_filter_orientation, 10.0, 0.5) # CHECK 10 and 0.5 VALUES
+            return cv2.filter2D(np.int16(tmp), -1, g_kernel)
         # MINVALUE
         elif func==44:
             return np.full(connection0.shape,fill_value=connection0.min(),dtype=float)
@@ -198,10 +209,91 @@ class Functions:
             return retval
         # LOCALMAX parameter1 parameter2
         elif func==48:
-            return connection0
+            retval = np.ndarray(connection0.shape,dtype=float)
+            height, width = connection0.shape[:2]
+            x = abs(parameter1)
+            y = abs(parameter2)
+            xa = 0
+            xb = 0
+            yc = 0
+            yd = 0
+            if x==0:
+                x = 1
+            if y==0:
+                y = 1
+            for i in range(0,height):
+                yc = i - y
+                yd = i + y
+                if yc<0:
+                    yc = 0
+                if yd>=height:
+                    yd = height-1
+                for j in range(0,width):
+                    xa = j - x
+                    xb = j + x
+                    if xa<0:
+                        xa = 0
+                    if xb>=width:
+                        xb = width-1
+                    retval[i,j] = connection0[yc:yd,xa:xb].max()
+            return retval
         # LOCALAVG parameter1 parameter2
         elif func==49:
-            return connection0
+            retval = np.ndarray(connection0.shape,dtype=float)
+            height, width = connection0.shape[:2]
+            x = abs(parameter1)
+            y = abs(parameter2)
+            xa = 0
+            xb = 0
+            yc = 0
+            yd = 0
+            if x==0:
+                x = 1
+            if y==0:
+                y = 1
+            for i in range(0,height):
+                yc = i - y
+                yd = i + y
+                if yc<0:
+                    yc = 0
+                if yd>=height:
+                    yd = height-1
+                for j in range(0,width):
+                    xa = j - x
+                    xb = j + x
+                    if xa<0:
+                        xa = 0
+                    if xb>=width:
+                        xb = width-1
+                    retval[i,j] = connection0[yc:yd,xa:xb].mean()
+            return retval
         # LOCALNORMALIZE parameter1 parameter2
         elif func==50:
-            return connection0
+            retval = np.ndarray(connection0.shape,dtype=float)
+            height, width = connection0.shape[:2]
+            x = abs(parameter1)
+            y = abs(parameter2)
+            xa = 0
+            xb = 0
+            yc = 0
+            yd = 0
+            if x==0:
+                x = 1
+            if y==0:
+                y = 1
+            for i in range(0,height):
+                yc = i - y
+                yd = i + y
+                if yc<0:
+                    yc = 0
+                if yd>=height:
+                    yd = height-1
+                for j in range(0,width):
+                    xa = j - x
+                    xb = j + x
+                    if xa<0:
+                        xa = 0
+                    if xb>=width:
+                        xb = width-1
+                    retval[i,j] = 255*(connection0[i,j] - np.min(connection0[yc:yd,xa:xb]))/np.max(connection0[yc:yd,xa:xb]).astype(float)
+            return retval

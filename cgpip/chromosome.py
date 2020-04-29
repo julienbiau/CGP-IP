@@ -146,8 +146,6 @@ class Chromosome:
 
         file.close()
 
-        self.print()
-
         self.updateActiveNodes()
 
     def random(self):
@@ -157,10 +155,11 @@ class Chromosome:
         for i in range(0,self.num_outputs):
             self.output_nodes.append(random.randrange(1,self.graph_length))
 
-        self.print()
-
         self.updateActiveNodes()
 
+    def getOutputValues(self):
+        return self.output_values
+        
     def mutate(self,mutation_rate):
         nb_mutations = math.floor((self.graph_length*8 + self.num_outputs)*mutation_rate)
 

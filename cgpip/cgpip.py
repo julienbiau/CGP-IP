@@ -50,6 +50,12 @@ class CGPIP:
         self.chromosome = Chromosome(0,0,0)
         self.chromosome.fromFile(filename)
 
+    def getInputs(self):
+        return self.inputs
+
+    def getOutputs(self):
+        return self.outputs
+
     def run(self):
         if not self.data_loaded:
             # load data
