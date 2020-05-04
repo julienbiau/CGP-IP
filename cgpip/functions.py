@@ -15,12 +15,18 @@ class Functions:
     # Gabor Filter Frequ. Int [0, 16]
     # Gabor Filter Orient. Int [−8, +8]
 
-    num_functions = 50
+    num_functions = 46
     ksize = (3,3)
+
+    two_arguments = [False,False,False,False,False,False,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,True,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False]
 
     @classmethod
     def getRandomFunction(cls):
         return random.randrange(1,1+cls.num_functions)
+
+    @classmethod
+    def needSecondArgument(cls,function):
+        return cls.two_arguments[function]
 
     @classmethod
     def execute(cls, func, connection0, connection1, parameter0, parameter1, parameter2, gabor_filter_frequency, gabor_filter_orientation):
@@ -32,31 +38,71 @@ class Functions:
             return connection0
         # ADD connection0 connection1
         elif func==6:
-            return np.add(connection0,connection1) # with overflow modulo
+            if True:
+                tmp = np.add(connection0,connection1,dtype="int16")
+                tmp[tmp>255] = 255
+                return np.asarray(tmp,dtype="uint8")
+            else:
+                return np.add(connection0,connection1) # with overflow modulo
         # SUB connection0 connection1
         elif func==7:
-            return np.subtract(connection0,connection1) # with overflow modulo
+            if True:
+                tmp = np.subtract(connection0,connection1,dtype="int16")
+                tmp[tmp<0] = 0
+                return np.asarray(tmp,dtype="uint8")
+            else:
+                return np.subtract(connection0,connection1) # with overflow modulo
         # MUL connection0 connection1
         elif func==8:
-            return np.multiply(connection0,connection1) # with overflow modulo
+            if True:
+                tmp = np.multiply(connection0,connection1,dtype="int16")
+                tmp[tmp>255] = 255
+                return np.asarray(tmp,dtype="uint8")
+            else:
+                return np.multiply(connection0,connection1) # with overflow modulo
         # LOG connection0
         elif func==9:
-            return np.asarray(np.log(connection0), dtype="uint8")
+            if True:
+                tmp = np.array(connection0, dtype="uint8")
+                tmp[tmp==0] = 1
+                return np.asarray(np.log(tmp),dtype="uint8")
+            else:
+                return np.asarray(np.log(connection0), dtype="uint8") # with 0 warnings
         # EXP connection0
         elif func==10:
-            return np.asarray(np.exp(connection0), dtype="uint8") # inf => 0
+            if True:
+                tmp = np.exp(connection0, dtype="float64")
+                tmp[tmp>255] = 255
+                return np.asarray(tmp,dtype="uint8")
+            else:
+                return np.asarray(np.exp(connection0), dtype="uint8") # inf => 0
         # SQRT connection0
         elif func==11:
             return np.asarray(np.sqrt(connection0), dtype="uint8")
         # ADDC connection0 parameter0
         elif func==12:
-            return np.asarray(connection0 + parameter0, dtype="uint8") # with overflow modulo
+            if True:
+                tmp = np.int16(connection0) + parameter0
+                tmp[tmp>255] = 255
+                return np.asarray(tmp,dtype="uint8")
+            else:
+                return np.asarray(connection0 + parameter0, dtype="uint8") # with overflow modulo
         # SUBC connection0 parameter0
         elif func==13:
-            return np.asarray(connection0 - parameter0, dtype="uint8") # with overflow modulo
+            if True:
+                tmp = np.int16(connection0) - parameter0
+                tmp[tmp<0] = 0
+                return np.asarray(tmp,dtype="uint8")
+            else:
+                return np.asarray(connection0 - parameter0, dtype="uint8") # with overflow modulo
         # MULLC connection0 parameter0
         elif func==14:
-            return np.asarray(connection0 * parameter0, dtype="uint8") # with overflow modulo
+            if True:
+                tmp = np.int16(connection0) * parameter0
+                tmp[tmp>255] = 255
+                return np.asarray(tmp,dtype="uint8")
+            else:
+                return np.asarray(connection0 * parameter0, dtype="uint8") # with overflow modulo
         # DILATE connection0
         elif func==15:
             return cv2.dilate(connection0,cls.ksize)

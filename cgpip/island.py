@@ -15,14 +15,15 @@ class IslandProcess(Process):
 
 class Island:
 
-    def __init__(self,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv):
+    def __init__(self,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv,fitnessFunction):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.graph_length = graph_length
         self.mutation_rate = mutation_rate
         self.emu = 1
         self.elambda = num_indiv - self.emu
-        self.parent = Chromosome(self.num_inputs,self.num_outputs,self.graph_length)
+        self.fitnessFunction = fitnessFunction
+        self.parent = Chromosome(self.num_inputs,self.num_outputs,self.graph_length,1)
         self.childs = []
         self.best_chromosome = None
         self.processes = []
@@ -33,7 +34,7 @@ class Island:
             self.parent = copy.deepcopy(chromosome)
 
         for i in range(0,self.elambda):
-            self.childs.append(Chromosome(self.num_inputs,self.num_outputs,self.graph_length))
+            self.childs.append(Chromosome(self.num_inputs,self.num_outputs,self.graph_length,self.fitnessFunction))
 
             if chromosome==None:
                 self.childs[i].random()
@@ -41,11 +42,11 @@ class Island:
                 self.childs[i] = copy.deepcopy(chromosome)
 
     def updateParentFitness(self,input_data,output_data):
-        self.parent.calculateFitnessMeanError(input_data,output_data)
+        self.parent.calculateFitness(input_data,output_data,True)
 
     def updateFitness(self,input_data,output_data):
         for i in range(0,self.elambda):
-            self.childs[i].calculateFitnessMeanError(input_data,output_data)
+            self.childs[i].calculateFitness(input_data,output_data)
 
         return self.setBestChromosome()
 
@@ -62,7 +63,9 @@ class Island:
             self.processes[i].join()
 
         for i in range(0,len(self.processes)):
-            self.childs[i].setFitness(self.queues[i].get())
+            fitness, duration = self.queues[i].get()
+            self.childs[i].setFitness(fitness)
+            self.childs[i].setDuration(duration)
 
         self.setBestChromosome()
 
@@ -93,11 +96,13 @@ class Island:
         self.best_chromosome = self.parent
         best = -1
         fitness = self.parent.getFitness()
+        parent = True
         for i in range(0,self.elambda):
-            if self.childs[i].getFitness()<=self.best_chromosome.getFitness():
+            if (parent and self.childs[i].getFitness()<self.best_chromosome.getFitness()) or (self.childs[i].getFitness()<self.best_chromosome.getFitness()) or (self.childs[i].getFitness()==self.best_chromosome.getFitness() and (self.childs[i].getDuration()<self.best_chromosome.getDuration())):
                 self.best_chromosome = self.childs[i]
                 best = i
                 fitness = self.childs[i].getFitness()
+                parent = False
         return best, fitness
 
     def doEvolution(self):
