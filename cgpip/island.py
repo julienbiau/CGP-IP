@@ -112,8 +112,7 @@ class Island:
             self.childs[i] = copy.deepcopy(self.parent)
         
         for i in range(0,self.elambda):
-            self.childs[i].mutate(self.mutation_rate)
-
+            self.childs[i].goldman_mutate(self.mutation_rate)
     
     def getBestChromosome(self):
         return self.best_chromosome

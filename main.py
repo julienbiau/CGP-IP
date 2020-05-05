@@ -35,7 +35,7 @@ def load_data_6_1_uint8(input_dir,output_dir,max_el):
     filenames = sorted(os.listdir(output_dir))
     for i in tqdm(range(max_el)):
         output = cv2.imread(output_dir+"/"+filenames[i])
-        outputs.append([np.asarray(output[:,:,2],dtype="uint8")])
+        outputs.append([np.asarray(output[:,:,0],dtype="uint8")])
 
     return inputs, outputs
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     num_islands = 8
     num_indiv = 5
     graph_length = 50
-    mutation_rate = 0.1
+    mutation_rate = 0.05
     sync_interval_island = 0
 
     if len(sys.argv)==1:
