@@ -18,7 +18,7 @@ class ChromosomeProcess(Process):
         start_time = time.time()
         fitness = self.chromosome.calculateFitness(self.input_data,self.output_data)
         duration = time.time() - start_time
-        print("--- %s seconds ---" % duration)
+        #print("--- %s seconds ---" % duration)
         self.queue.put((fitness, duration))
 
 class Node:
@@ -212,6 +212,56 @@ class Chromosome:
                 self.output_nodes[index-self.graph_length*8] = random.randrange(1,self.graph_length,1)
 
         self.updateActiveNodes()
+
+    def goldman_mutate(self,mutation_rate):
+        nb_mutations = math.floor((self.graph_length*8 + self.num_outputs)*mutation_rate)
+
+        while nb_mutations>0:
+            mutation = False
+
+            index = random.randrange(0, self.graph_length*8 + self.num_outputs, 1)
+
+            if index < self.graph_length*8:
+                parameter = index % 8
+                node_index = int((index - parameter)/8)
+
+                try:
+                    if self.active_nodes.index(node_index+self.num_inputs):
+                        mutation = True
+                except:
+                    pass
+
+                # nodes
+                if parameter == 0:
+                    self.nodes[node_index].getRandomFunction()
+                elif parameter == 1:
+                    self.nodes[node_index].getRandomConnection0()
+                elif parameter == 2:
+                    self.nodes[node_index].getRandomConnection1()
+                elif parameter == 3:
+                    self.nodes[node_index].getRandomParameter0()
+                elif parameter == 4:
+                    self.nodes[node_index].getRandomParameter1()
+                elif parameter == 5:
+                    self.nodes[node_index].getRandomParameter2()
+                elif parameter == 6:
+                    self.nodes[node_index].getRandomGaborFilterFrequence()
+                elif parameter == 7:
+                    self.nodes[node_index].getRandomGaborFilterOrientation()
+            else:
+                # outputs
+                self.output_nodes[index-self.graph_length*8] = random.randrange(1,self.graph_length,1)
+                mutation = True
+
+            current_active_nodes = list(self.active_nodes)
+
+            self.updateActiveNodes()
+
+            if not mutation and not (current_active_nodes==self.active_nodes):
+                mutation = True
+
+            if mutation:
+                nb_mutations = nb_mutations - 1
 
     def calculateFitness(self,input_data,output_data,verbose=False):
         if self.fitnessFunction==self.FITNESS_MEAN_ERROR:
