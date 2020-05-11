@@ -3,6 +3,37 @@ import numpy as np
 import cv2
 import sys
 import math
+from multiprocessing import Pool
+
+data = None
+data_x = None
+data_y = None
+
+def init_pool_mmmn(data_arg,data_y_arg,data_x_arg):
+    global data
+    global data_x
+    global data_y
+    data = data_arg
+    data_x = data_x_arg
+    data_y = data_y_arg
+
+def localmin(a):
+    y,x = a
+    return data[y-data_y:y+data_y,x-data_x:x+data_x].min()
+
+def localmax(a):
+    y,x = a
+    return data[y-data_y:y+data_y,x-data_x:x+data_x].max()
+
+def localmean(a):
+    y,x = a
+    return data[y-data_y:y+data_y,x-data_x:x+data_x].mean()
+
+def localnormalize(a):
+    y,x = a
+    tmp = (data[y,x] - np.min(data[y-data_y:y+data_y,x-data_x:x+data_x]))
+    tmp = tmp/max(1,np.max(data[y-data_y:y+data_y,x-data_x:x+data_x]))
+    return (255*(tmp)).astype("uint8")
 
 class Functions:
 
@@ -15,8 +46,9 @@ class Functions:
     # Gabor Filter Frequ. Int [0, 16]
     # Gabor Filter Orient. Int [−8, +8]
 
-    num_functions = 46
+    num_functions = 50
     ksize = (3,3)
+    nb_processes = 16
 
     two_arguments = [False,False,False,False,False,False,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,True,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False]
 
@@ -225,121 +257,283 @@ class Functions:
             return np.full(connection0.shape,fill_value=connection0.mean(),dtype="uint8")
         # LOCALMIN parameter1 parameter2
         elif func==47:
-            retval = np.ndarray(connection0.shape,dtype="uint8")
-            height, width = connection0.shape[:2]
-            x = abs(parameter1)
-            y = abs(parameter2)
-            xa = 0
-            xb = 0
-            yc = 0
-            yd = 0
-            if x==0:
-                x = 1
-            if y==0:
-                y = 1
-            for i in range(0,height):
-                yc = i - y
-                yd = i + y
-                if yc<0:
-                    yc = 0
-                if yd>=height:
-                    yd = height-1
-                for j in range(0,width):
-                    xa = j - x
-                    xb = j + x
-                    if xa<0:
-                        xa = 0
-                    if xb>=width:
-                        xb = width-1
-                    retval[i,j] = connection0[yc:yd,xa:xb].min()
-            return retval
+            if False:
+                retval = np.ndarray(connection0.shape,dtype="uint8")
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                xa = 0
+                xb = 0
+                yc = 0
+                yd = 0
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+                for i in range(0,height):
+                    yc = i - y
+                    yd = i + y
+                    if yc<0:
+                        yc = 0
+                    if yd>=height:
+                        yd = height-1
+                    yd = yd + 1
+                    for j in range(0,width):
+                        xa = j - x
+                        xb = j + x
+                        if xa<0:
+                            xa = 0
+                        if xb>=width:
+                            xb = width-1
+                        xb = xb + 1
+                        retval[i,j] = connection0[yc:yd,xa:xb].min()
+                return retval
+            elif False:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+                tmp = np.full((height+2*y,width+2*x),fill_value=255,dtype="uint8")
+                tmp[y:height+y,x:width+x] = connection0
+                retval = np.ndarray((height,width),dtype="uint8")
+                for i in range(y,height+y):
+                    for j in range(x,width+x):
+                        retval[i-y,j-x] = tmp[i-y:i+y+1,j-x:j+x+1].min()
+
+                return retval
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
+                tmp = np.full((height+2*y,width+2*x),fill_value=255,dtype="uint8")
+                tmp[y:height+y,x:width+x] = connection0
+
+                pool = Pool(processes=cls.nb_processes,initializer=init_pool_mmmn, initargs=(tmp,y,x))
+
+                indexes = []
+
+                for i in range(y,height+y):
+                    for j in range(x,width+x):
+                        indexes.append((i,j))
+
+                res = np.array(pool.map(localmin,indexes))
+
+                pool.close()
+
+                return res.reshape((height,width))
+            else:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+                retval = np.ndarray((height+2*y,width+2*x),dtype="uint8")
+                indices = [[]] * 256
+                for i in range(0,height):
+                    for j in range(0,width):
+                        #print(connection0[i,j])
+                        indices[connection0[i,j]].append((i,j))
+
+                for i in range(255,0,-1):
+                    for j in range(0,len(indices[i])):
+                        #print(str(i)+" "+str(j))
+                        yi,xi = indices[i][j]
+                        retval[yi-y:yi+y,xi-x:xi+x] = i
+
+                return retval[y:-y,x:-1]
         # LOCALMAX parameter1 parameter2
         elif func==48:
-            retval = np.ndarray(connection0.shape,dtype="uint8")
-            height, width = connection0.shape[:2]
-            x = abs(parameter1)
-            y = abs(parameter2)
-            xa = 0
-            xb = 0
-            yc = 0
-            yd = 0
-            if x==0:
-                x = 1
-            if y==0:
-                y = 1
-            for i in range(0,height):
-                yc = i - y
-                yd = i + y
-                if yc<0:
-                    yc = 0
-                if yd>=height:
-                    yd = height-1
-                for j in range(0,width):
-                    xa = j - x
-                    xb = j + x
-                    if xa<0:
-                        xa = 0
-                    if xb>=width:
-                        xb = width-1
-                    retval[i,j] = connection0[yc:yd,xa:xb].max()
-            return retval
+            if False:
+                retval = np.ndarray(connection0.shape,dtype="uint8")
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                xa = 0
+                xb = 0
+                yc = 0
+                yd = 0
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+                for i in range(0,height):
+                    yc = i - y
+                    yd = i + y
+                    if yc<0:
+                        yc = 0
+                    if yd>=height:
+                        yd = height-1
+                    yd = yd + 1
+                    for j in range(0,width):
+                        xa = j - x
+                        xb = j + x
+                        if xa<0:
+                            xa = 0
+                        if xb>=width:
+                            xb = width-1
+                        xb = xb + 1
+                        retval[i,j] = connection0[yc:yd,xa:xb].max()
+                return retval
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
+                tmp = np.full((height+2*y,width+2*x),fill_value=0,dtype="uint8")
+                tmp[y:height+y,x:width+x] = connection0
+
+                pool = Pool(processes=cls.nb_processes,initializer=init_pool_mmmn, initargs=(tmp,y,x))
+
+                indexes = []
+
+                for i in range(y,height+y):
+                    for j in range(x,width+x):
+                        indexes.append((i,j))
+
+                res = np.array(pool.map(localmax,indexes))
+
+                pool.close()
+
+                return res.reshape((height,width))
         # LOCALAVG parameter1 parameter2
         elif func==49:
-            retval = np.ndarray(connection0.shape,dtype="uint8")
-            height, width = connection0.shape[:2]
-            x = abs(parameter1)
-            y = abs(parameter2)
-            xa = 0
-            xb = 0
-            yc = 0
-            yd = 0
-            if x==0:
-                x = 1
-            if y==0:
-                y = 1
-            for i in range(0,height):
-                yc = i - y
-                yd = i + y
-                if yc<0:
-                    yc = 0
-                if yd>=height:
-                    yd = height-1
-                for j in range(0,width):
-                    xa = j - x
-                    xb = j + x
-                    if xa<0:
-                        xa = 0
-                    if xb>=width:
-                        xb = width-1
-                    retval[i,j] = connection0[yc:yd,xa:xb].mean()
-            return retval
+            if False:
+                retval = np.ndarray(connection0.shape,dtype="uint8")
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                xa = 0
+                xb = 0
+                yc = 0
+                yd = 0
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+                for i in range(0,height):
+                    yc = i - y
+                    yd = i + y
+                    if yc<0:
+                        yc = 0
+                    if yd>=height:
+                        yd = height-1
+                    yd = yd + 1
+                    for j in range(0,width):
+                        xa = j - x
+                        xb = j + x
+                        if xa<0:
+                            xa = 0
+                        if xb>=width:
+                            xb = width-1
+                        xb = xb + 1
+                        retval[i,j] = connection0[yc:yd,xa:xb].mean()
+                return retval
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
+                tmp = np.copy(connection0)
+
+                pool = Pool(processes=cls.nb_processes,initializer=init_pool_mmmn, initargs=(connection0,y,x))
+
+                indexes = []
+
+                for i in range(y,height-y):
+                    for j in range(x,width-x):
+                        indexes.append((i,j))
+
+                tmp[y:height-y,x:width-x] = np.array(pool.map(localmean,indexes)).reshape((height-2*y,width-2*x))
+
+                pool.close()
+
+                return tmp
         # LOCALNORMALIZE parameter1 parameter2
         elif func==50:
-            retval = np.ndarray(connection0.shape,dtype="uint8")
-            height, width = connection0.shape[:2]
-            x = abs(parameter1)
-            y = abs(parameter2)
-            xa = 0
-            xb = 0
-            yc = 0
-            yd = 0
-            if x==0:
-                x = 1
-            if y==0:
-                y = 1
-            for i in range(0,height):
-                yc = i - y
-                yd = i + y
-                if yc<0:
+            if False:
+                try:
+                    retval = np.ndarray(connection0.shape,dtype="uint8")
+                    height, width = connection0.shape[:2]
+                    x = abs(parameter1)
+                    y = abs(parameter2)
+                    xa = 0
+                    xb = 0
                     yc = 0
-                if yd>=height:
-                    yd = height-1
-                for j in range(0,width):
-                    xa = j - x
-                    xb = j + x
-                    if xa<0:
-                        xa = 0
-                    if xb>=width:
-                        xb = width-1
-                    retval[i,j] = (255*(connection0[i,j] - np.min(connection0[yc:yd,xa:xb]))/max(1,np.max(connection0[yc:yd,xa:xb]))).astype("uint8")
-            return retval
+                    yd = 0
+                    if x==0:
+                        x = 1
+                    if y==0:
+                        y = 1
+                    for i in range(0,height):
+                        yc = i - y
+                        yd = i + y
+                        if yc<0:
+                            yc = 0
+                        if yd>=height:
+                            yd = height-1
+                        yd = yd + 1
+                        for j in range(0,width):
+                            xa = j - x
+                            xb = j + x
+                            if xa<0:
+                                xa = 0
+                            if xb>=width:
+                                xb = width-1
+                            xb = xb + 1
+                            if connection0[i,j] < np.min(connection0[yc:yd,xa:xb]):
+                                print(connection0[yc:yd,xa:xb])
+                            tmp = (connection0[i,j] - np.min(connection0[yc:yd,xa:xb]))
+                            tmp = tmp/max(1,np.max(connection0[yc:yd,xa:xb]))
+                            retval[i,j] = (255*(tmp)).astype("uint8")
+                except:
+                    print(i)
+                    print(j)
+                    print(yc)
+                    print(yd)
+                    print(xa)
+                    print(xb)
+                    print(connection0[i,j])
+                    print(np.min(connection0[yc:yd,xa:xb]))
+                return retval
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
+                tmp = np.copy(connection0)
+
+                pool = Pool(processes=cls.nb_processes,initializer=init_pool_mmmn, initargs=(connection0,y,x))
+
+                indexes = []
+
+                for i in range(y,height-y):
+                    for j in range(x,width-x):
+                        indexes.append((i,j))
+
+                tmp[y:height-y,x:width-x] = np.array(pool.map(localnormalize,indexes)).reshape((height-2*y,width-2*x))
+
+                pool.close()
+
+                return tmp

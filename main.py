@@ -5,6 +5,8 @@ import os
 import cv2
 import numpy as np
 from tqdm import tqdm
+import warnings
+warnings.filterwarnings("error")
 
 def load_data_3_uint8(input_dir,output_dir,max_el):
     inputs = []
@@ -35,7 +37,7 @@ def load_data_6_1_uint8(input_dir,output_dir,max_el):
     filenames = sorted(os.listdir(output_dir))
     for i in tqdm(range(max_el)):
         output = cv2.imread(output_dir+"/"+filenames[i])
-        outputs.append([np.asarray(output[:,:,0],dtype="uint8")])
+        outputs.append([np.asarray(output[:,:,1],dtype="uint8")])
 
     return inputs, outputs
 
@@ -107,7 +109,7 @@ if __name__ == '__main__':
         chromosome = Chromosome(1,1,50,Chromosome.FITNESS_MCC)
         chromosome.random()
 
-        input = np.ndarray((1000,1000),dtype="uint8")
+        input = np.ndarray((2000,2000),dtype="uint8")
         inputs = [input]
 
         for i in range(0,50):
