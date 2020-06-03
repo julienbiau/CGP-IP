@@ -4,6 +4,7 @@ import cv2
 import sys
 import math
 from multiprocessing import Pool
+from numpy.lib.stride_tricks import as_strided
 
 data = None
 data_x = None
@@ -33,6 +34,11 @@ def localnormalize(a):
     y,x = a
     tmp = (data[y,x] - np.min(data[y-data_y:y+data_y,x-data_x:x+data_x]))
     tmp = tmp/max(1,np.max(data[y-data_y:y+data_y,x-data_x:x+data_x]))
+    return (255*(tmp)).astype("uint8")
+
+def np_localnormalize(a,y,x):
+    tmp = (a[y,x] - a.min())
+    tmp = tmp/max(1,a.max())
     return (255*(tmp)).astype("uint8")
 
 class Functions:
@@ -304,7 +310,7 @@ class Functions:
                         retval[i-y,j-x] = tmp[i-y:i+y+1,j-x:j+x+1].min()
 
                 return retval
-            elif True:
+            elif False:
                 height, width = connection0.shape[:2]
                 x = abs(parameter1)
                 y = abs(parameter2)
@@ -329,6 +335,33 @@ class Functions:
                 pool.close()
 
                 return res.reshape((height,width))
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
+                stride = 1
+
+                kernel_size = (2*y+1,2*x+1)
+
+                # Padding
+                A = np.pad(connection0, ((y,y),(x,x)), mode='constant', constant_values=255)
+
+                # Window view of A
+                output_shape = ((A.shape[0] - kernel_size[0])//stride+1,
+                                (A.shape[1] - kernel_size[1])//stride+1)
+
+                A_w = as_strided(A, shape = output_shape + kernel_size, 
+                                    strides = (stride*A.strides[0],
+                                            stride*A.strides[1]) + A.strides)
+
+                A_w = A_w.reshape(-1, *kernel_size)
+
+                return A_w.min(axis=(1,2)).reshape(connection0.shape)
             else:
                 height, width = connection0.shape[:2]
                 x = abs(parameter1)
@@ -393,6 +426,33 @@ class Functions:
                 if y==0:
                     y = 1
 
+                stride = 1
+
+                kernel_size = (2*y+1,2*x+1)
+
+                # Padding
+                A = np.pad(connection0, ((y,y),(x,x)), mode='constant', constant_values=0)
+
+                # Window view of A
+                output_shape = ((A.shape[0] - kernel_size[0])//stride+1,
+                                (A.shape[1] - kernel_size[1])//stride+1)
+
+                A_w = as_strided(A, shape = output_shape + kernel_size, 
+                                    strides = (stride*A.strides[0],
+                                            stride*A.strides[1]) + A.strides)
+
+                A_w = A_w.reshape(-1, *kernel_size)
+
+                return A_w.max(axis=(1,2)).reshape(connection0.shape)
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
                 tmp = np.full((height+2*y,width+2*x),fill_value=0,dtype="uint8")
                 tmp[y:height+y,x:width+x] = connection0
 
@@ -442,6 +502,34 @@ class Functions:
                         xb = xb + 1
                         retval[i,j] = connection0[yc:yd,xa:xb].mean()
                 return retval
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
+                stride = 1
+
+                kernel_size = (2*y+1,2*x+1)
+
+                tmp = np.copy(connection0)
+
+                # Window view of A
+                output_shape = ((connection0.shape[0] - kernel_size[0])//stride+1,
+                                (connection0.shape[1] - kernel_size[1])//stride+1)
+
+                A_w = as_strided(connection0, shape = output_shape + kernel_size, 
+                                    strides = (stride*connection0.strides[0],
+                                            stride*connection0.strides[1]) + connection0.strides)
+
+                A_w = A_w.reshape(-1, *kernel_size)
+
+                tmp[y:-y,x:-x] = A_w.mean(axis=(1,2)).reshape(output_shape)
+
+                return tmp
             elif True:
                 height, width = connection0.shape[:2]
                 x = abs(parameter1)
@@ -513,6 +601,34 @@ class Functions:
                     print(connection0[i,j])
                     print(np.min(connection0[yc:yd,xa:xb]))
                 return retval
+            elif True:
+                height, width = connection0.shape[:2]
+                x = abs(parameter1)
+                y = abs(parameter2)
+                if x==0:
+                    x = 1
+                if y==0:
+                    y = 1
+
+                stride = 1
+
+                kernel_size = (2*y+1,2*x+1)
+
+                tmp = np.copy(connection0)
+
+                # Window view of A
+                output_shape = ((connection0.shape[0] - kernel_size[0])//stride+1,
+                                (connection0.shape[1] - kernel_size[1])//stride+1)
+
+                A_w = as_strided(connection0, shape = output_shape + kernel_size, 
+                                    strides = (stride*connection0.strides[0],
+                                            stride*connection0.strides[1]) + connection0.strides)
+
+                A_w = A_w.reshape(-1, *kernel_size)
+
+                tmp[y:-y,x:-x] = np.array([np_localnormalize(xi,2*y,2*x) for xi in A_w]).reshape(output_shape)
+
+                return tmp
             elif True:
                 height, width = connection0.shape[:2]
                 x = abs(parameter1)

@@ -9,7 +9,7 @@ from multiprocessing import Queue, Process
 
 class CGPIP:
 
-    def __init__(self, graph_length, mutation_rate, size_of_mutations, num_islands, num_indiv_island, sync_interval_island, max_iterations, chromosomeOptimization, islandOptimization, fitnessFunction):
+    def __init__(self, graph_length, mutation_rate, size_of_mutations, num_islands, num_indiv_island, sync_interval_island, max_iterations, chromosomeOptimization, islandOptimization, fitnessFunction, batch_size):
         self.graph_length = graph_length
         self.mutation_rate = mutation_rate
         self.size_of_mutations = size_of_mutations
@@ -24,6 +24,8 @@ class CGPIP:
         self.num_inputs = 0
         self.num_outputs = 0
         self.chromosome = None
+        self.batch_size = batch_size
+        self.nb_batch = 0
         self.chromosomeOptimization = chromosomeOptimization
         self.islandOptimization = islandOptimization
         self.fitnessFunction = fitnessFunction
@@ -39,6 +41,20 @@ class CGPIP:
 
         self.data_loaded = True
 
+        self.nb_batch = len(self.inputs) / self.batch_size
+
+        assert self.nb_batch * self.batch_size == len(self.inputs), 'incompatible batch_size'
+
+    def getInputs(self):
+        nb = int(self.num_run % self.nb_batch)
+
+        return self.inputs[nb*self.batch_size:(nb+1)*self.batch_size]
+
+    def getOutputs(self):
+        nb = int(self.num_run % self.nb_batch)
+
+        return self.outputs[nb*self.batch_size:(nb+1)*self.batch_size]
+
     def load_chromosome(self,filename):
         self.chromosome = Chromosome(0,0,0,self.fitnessFunction)
         self.chromosome.fromFile(filename)
@@ -46,10 +62,10 @@ class CGPIP:
     def set_parent_chromosome(self,chromosome):
         self.chromosome = chromosome
 
-    def getInputs(self):
+    def getAllInputs(self):
         return self.inputs
 
-    def getOutputs(self):
+    def getAllOutputs(self):
         return self.outputs
 
     def run(self):
@@ -62,11 +78,15 @@ class CGPIP:
         elif self.chromosomeOptimization==True:
             print("Chromosome optimization")
         
+        if self.chromosome!=None:
+            print("Chromosome fitness: "+str(self.chromosome.calculateFitness(self.inputs,self.outputs,True)))
+
         for i in range(0,self.num_islands):
             # create island
-            island = Island(self.chromosome,self.num_inputs,self.num_outputs,self.graph_length,self.mutation_rate,self.num_indiv_island,self.fitnessFunction)
+            island = Island(self.chromosome,self.num_inputs,self.num_outputs,self.graph_length,self.mutation_rate,self.num_indiv_island,self.fitnessFunction,self.nb_batch>1)
             self.islands.append(island)
-            island.updateParentFitness(self.inputs,self.outputs)
+            if self.nb_batch==1:
+                island.updateParentFitness(self.inputs,self.outputs)
 
         print("islands created")
 
@@ -74,7 +94,7 @@ class CGPIP:
 
             if self.islandOptimization==True:
                 for j in range(0,self.num_islands):
-                    self.islands[j].updateFitnessIsland(self.inputs,self.outputs)
+                    self.islands[j].updateFitnessIsland(self.getInputs(),self.getOutputs())
 
                 for j in range(0,self.num_islands):
                     self.islands[j].waitForUpdateFitnessIsland()
@@ -83,7 +103,7 @@ class CGPIP:
                         print("Island "+str(j)+" iterations "+str(self.num_run)+" fitness: "+str(self.islands[j].getBestChromosome().getFitness())+" active nodes: "+str(self.islands[j].getBestChromosome().getNbActiveNodes()))
             elif self.chromosomeOptimization==True:
                 for j in range(0,self.num_islands):
-                    self.islands[j].updateFitnessChromosome(self.inputs,self.outputs)
+                    self.islands[j].updateFitnessChromosome(self.getInputs(),self.getOutputs())
 
                 for j in range(0,self.num_islands):
                     self.islands[j].waitForUpdateFitnessChromosome()
@@ -92,14 +112,14 @@ class CGPIP:
                         print("Island "+str(j)+" iterations "+str(self.num_run)+" fitness: "+str(self.islands[j].getBestChromosome().getFitness())+" active nodes: "+str(self.islands[j].getBestChromosome().getNbActiveNodes())+" duration: "+str(self.islands[j].getBestChromosome().getDuration()))
             else:
                 for j in range(0,self.num_islands):
-                    self.islands[j].updateFitness(self.inputs,self.outputs)
+                    self.islands[j].updateFitness(self.getInputs(),self.getOutputs())
 
                     if self.num_run % 5 == 0:
                         print("Island "+str(j)+" iterations "+str(self.num_run)+" fitness: "+str(self.islands[j].getBestChromosome().getFitness())+" active nodes: "+str(self.islands[j].getBestChromosome().getNbActiveNodes()))
 
             self.num_run = self.num_run + 1
 
-            if self.sync_interval_island>0 and self.num_run % self.sync_interval_island:
+            if self.sync_interval_island>0 and self.num_run % self.sync_interval_island == 0:
                 islands_best = []
                 # update all island with best chromosome
                 for j in range(0,self.num_islands):
@@ -131,3 +151,5 @@ class CGPIP:
                 best_chromosome = islands_best[j]
 
         best_chromosome.saveFile('./best.txt')
+
+        print("Chromosome fitness: "+str(best_chromosome.calculateFitness(self.inputs,self.outputs,True)))

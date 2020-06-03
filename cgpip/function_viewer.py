@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from supp_functions import SuppFunctions
 
 from skimage import data
+import time
 
 class FunctionViewer(object):
     def __init__(self):
@@ -14,8 +15,11 @@ class FunctionViewer(object):
     def run(self, img0, img1, p0, p1, p2, p3, p4):
         fig, axs = plt.subplots(len(self.function_list), 3, figsize=(15, len(self.function_list)*3))
         for i, function in enumerate(self.function_list):
+            start_time = time.time()
             img_out = self.function_bundle.execute(function, img0, img1, p0, p1, p2, p3, p4)
+            print(function)
             print(img_out.shape)
+            print(time.time()-start_time)
             axs[i, 0].imshow(img0, cmap=plt.get_cmap('gray'))
             axs[i, 1].imshow(img1, cmap=plt.get_cmap('gray'))
             axs[i, 2].imshow(img_out, cmap=plt.get_cmap('gray'))

@@ -95,7 +95,7 @@ def pool2d(A, kernel_size, stride, padding, pool_mode='max'):
         return A_w.min(axis=(1,2)).reshape(output_shape)
     elif pool_mode == 'max':
         return A_w.max(axis=(1,2)).reshape(output_shape)
-    elif pool_mode == 'avg':
+    elif pool_mode == 'avg' or pool_mode == 'norm':
         return A_w.mean(axis=(1,2)).reshape(output_shape)
     elif pool_mode == 'norm':
         #(255*(connection0[i,j] - np.min(connection0[yc:yd,xa:xb]))/max(1,np.max(connection0[yc:yd,xa:xb]))).astype("uint8")
@@ -161,7 +161,7 @@ class SuppFunctions(FunctionBundle):
             return connection0
             #return find_contours(connection0, parameter0)
 
-        # LOCALMIN parameter1 parameter2
+        # LOCALMIN parameter1 parameter2 61
         if function_index == self.min_function_index+10:
             retval = np.ndarray(connection0.shape,dtype="uint8")
             height, width = connection0.shape[:2]
@@ -191,7 +191,7 @@ class SuppFunctions(FunctionBundle):
                         xb = width-1
                     retval[i,j] = connection0[yc:yd,xa:xb].min()
             return retval
-        # LOCALMAX parameter1 parameter2
+        # LOCALMAX parameter1 parameter2 62
         if function_index == self.min_function_index+11:
             retval = np.ndarray(connection0.shape,dtype="uint8")
             height, width = connection0.shape[:2]
@@ -221,7 +221,7 @@ class SuppFunctions(FunctionBundle):
                         xb = width-1
                     retval[i,j] = connection0[yc:yd,xa:xb].max()
             return retval
-        # LOCALAVG parameter1 parameter2
+        # LOCALAVG parameter1 parameter2 63
         if function_index == self.min_function_index+12:
             retval = np.ndarray(connection0.shape,dtype="uint8")
             height, width = connection0.shape[:2]
@@ -251,7 +251,7 @@ class SuppFunctions(FunctionBundle):
                         xb = width-1
                     retval[i,j] = connection0[yc:yd,xa:xb].mean()
             return retval
-        # LOCALNORMALIZE parameter1 parameter2
+        # LOCALNORMALIZE parameter1 parameter2 64
         if function_index == self.min_function_index+13:
             retval = np.ndarray(connection0.shape,dtype="uint8")
             height, width = connection0.shape[:2]

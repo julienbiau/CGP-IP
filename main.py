@@ -6,7 +6,51 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 import warnings
+import time
+from numpy.lib.stride_tricks import as_strided
+import random
+
 warnings.filterwarnings("error")
+
+def pool2d(A, kernel_size, stride, padding, pool_mode='max'):
+    '''
+    2D Pooling
+
+    Parameters:
+        A: input 2D array
+        kernel_size: int, the size of the window
+        stride: int, the stride of the window
+        padding: int, implicit zero paddings on both sides of the input
+        pool_mode: string, 'max' or 'avg'
+    '''
+    # Padding
+    A = np.pad(A, padding, mode='constant', constant_values=255)
+
+    print(A.shape)
+    # Window view of A
+    output_shape = ((A.shape[0] - kernel_size[0])//stride,
+                    (A.shape[1] - kernel_size[1])//stride)
+
+    print(output_shape)
+    #kernel_size = (kernel_size, kernel_size)
+    A_w = as_strided(A, shape = output_shape + kernel_size, 
+                        strides = (stride*A.strides[0],
+                                   stride*A.strides[1]) + A.strides)
+    #print(A_w.shape)
+    #print(A_w)
+    A_w = A_w.reshape(-1, *kernel_size)
+    print(A_w.shape)
+    # Return the result of pooling
+    if pool_mode == 'min':
+        return A_w.min(axis=(1,2)).reshape(output_shape)
+    elif pool_mode == 'max':
+        return A_w.max(axis=(1,2)).reshape(output_shape)
+    elif pool_mode == 'avg':
+        return A_w.mean(axis=(1,2)).reshape(output_shape)
+    elif pool_mode == 'norm':
+        #(255*(connection0[i,j] - np.min(connection0[yc:yd,xa:xb]))/max(1,np.max(connection0[yc:yd,xa:xb]))).astype("uint8")
+        maximums = A_w.max(axis=(1,2))
+        #return TODO
 
 def load_data_3_uint8(input_dir,output_dir,max_el):
     inputs = []
@@ -43,21 +87,24 @@ def load_data_6_1_uint8(input_dir,output_dir,max_el):
 
 if __name__ == '__main__':
 
-    max_iterations = 2000
+    max_iterations = 3000
     size_mutation = 2
     num_islands = 8
     num_indiv = 5
     graph_length = 50
     mutation_rate = 0.05
-    sync_interval_island = 0
+    sync_interval_island = 150
+    batch_size = 10
+
+    random.seed(7)
 
     if len(sys.argv)==1:
-        cgp = CGPIP(graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC)
+        cgp = CGPIP(graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,batch_size)
 
         if os.path.exists('./chromo.txt'):
             cgp.load_chromosome('./chromo.txt')
 
-        inputs, outputs = load_data_6_1_uint8('../CGP-IP-DATA/lunar/images/render','../CGP-IP-DATA/lunar/images/clean',50)
+        inputs, outputs = load_data_6_1_uint8('../CGP-IP-DATA/lunar/images/render','../CGP-IP-DATA/lunar/images/clean',200)
         
         cgp.load_data(inputs, outputs, 6, 1)
 
@@ -109,7 +156,7 @@ if __name__ == '__main__':
         chromosome = Chromosome(1,1,50,Chromosome.FITNESS_MCC)
         chromosome.random()
 
-        input = np.ndarray((2000,2000),dtype="uint8")
+        input = np.ndarray((512,512),dtype="uint8")
         inputs = [input]
 
         for i in range(0,50):
@@ -122,4 +169,24 @@ if __name__ == '__main__':
 
         chromosome.executeChromosome(inputs,True)
 
+        start_time = time.time()
 
+        pool2d(input, kernel_size=(abs(8)*2, abs(8)*2), stride=1, padding=abs(8), pool_mode='min')
+
+        print(time.time()-start_time)
+
+    elif sys.argv[1]=='test2':
+        #input = np.ndarray((512,512),dtype="uint8")
+        input = np.array(range(0,1000*1000))
+        input = input.reshape((1000,1000))
+
+        #print(input)
+        #print(input.shape)
+
+        start_time = time.time()
+
+        res = pool2d(input, kernel_size=(abs(10)*2+1, abs(10)*2+1), stride=1, padding=abs(10), pool_mode='min')
+
+        #print(res)
+
+        print(time.time()-start_time)

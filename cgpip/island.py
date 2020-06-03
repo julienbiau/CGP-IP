@@ -15,7 +15,7 @@ class IslandProcess(Process):
 
 class Island:
 
-    def __init__(self,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv,fitnessFunction):
+    def __init__(self,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv,fitnessFunction,calculate_parent_fitness):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.graph_length = graph_length
@@ -23,6 +23,7 @@ class Island:
         self.emu = 1
         self.elambda = num_indiv - self.emu
         self.fitnessFunction = fitnessFunction
+        self.calculate_parent_fitness = calculate_parent_fitness
         self.parent = Chromosome(self.num_inputs,self.num_outputs,self.graph_length,1)
         self.childs = []
         self.best_chromosome = None
@@ -42,15 +43,25 @@ class Island:
                 self.childs[i] = copy.deepcopy(chromosome)
 
     def updateParentFitness(self,input_data,output_data):
-        self.parent.calculateFitness(input_data,output_data,True)
+        self.parent.calculateFitness(input_data,output_data)
 
     def updateFitness(self,input_data,output_data):
+        if self.calculate_parent_fitness:
+            self.updateParentFitness(input_data,output_data)
+
         for i in range(0,self.elambda):
             self.childs[i].calculateFitness(input_data,output_data)
 
         return self.setBestChromosome()
 
     def updateFitnessChromosome(self,input_data,output_data):
+        if self.calculate_parent_fitness:
+            q = Queue()
+            c = ChromosomeProcess(self.parent,input_data,output_data,q)
+            c.start()
+            self.processes.append(c)
+            self.queues.append(q)
+
         for i in range(0,self.elambda):
             q = Queue()
             c = ChromosomeProcess(self.childs[i],input_data,output_data,q)
@@ -62,10 +73,20 @@ class Island:
         for i in range(0,len(self.processes)):
             self.processes[i].join()
 
-        for i in range(0,len(self.processes)):
-            fitness, duration = self.queues[i].get()
-            self.childs[i].setFitness(fitness)
-            self.childs[i].setDuration(duration)
+        if self.calculate_parent_fitness:
+            fitness, duration = self.queues[0].get()
+            self.parent.setFitness(fitness)
+            self.parent.setDuration(duration)
+
+            for i in range(1,len(self.processes)):
+                fitness, duration = self.queues[i].get()
+                self.childs[i-1].setFitness(fitness)
+                self.childs[i-1].setDuration(duration)
+        else:
+            for i in range(0,len(self.processes)):
+                fitness, duration = self.queues[i].get()
+                self.childs[i].setFitness(fitness)
+                self.childs[i].setDuration(duration)
 
         self.setBestChromosome()
 
@@ -103,6 +124,7 @@ class Island:
                 best = i
                 fitness = self.childs[i].getFitness()
                 parent = False
+
         return best, fitness
 
     def doEvolution(self):
