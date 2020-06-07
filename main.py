@@ -1,5 +1,7 @@
 from cgpip import CGPIP
 from cgpip import Chromosome
+from cgpip import Functions
+from cgpip import STD_UINT8
 import sys
 import os
 import cv2
@@ -96,10 +98,12 @@ if __name__ == '__main__':
     sync_interval_island = 150
     batch_size = 10
 
+    Functions.add(STD_UINT8)
+
     random.seed(7)
 
     if len(sys.argv)==1:
-        cgp = CGPIP(graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,batch_size)
+        cgp = CGPIP(Functions,graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,batch_size)
 
         if os.path.exists('./chromo.txt'):
             cgp.load_chromosome('./chromo.txt')
@@ -175,18 +179,3 @@ if __name__ == '__main__':
 
         print(time.time()-start_time)
 
-    elif sys.argv[1]=='test2':
-        #input = np.ndarray((512,512),dtype="uint8")
-        input = np.array(range(0,1000*1000))
-        input = input.reshape((1000,1000))
-
-        #print(input)
-        #print(input.shape)
-
-        start_time = time.time()
-
-        res = pool2d(input, kernel_size=(abs(10)*2+1, abs(10)*2+1), stride=1, padding=abs(10), pool_mode='min')
-
-        #print(res)
-
-        print(time.time()-start_time)

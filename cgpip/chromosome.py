@@ -1,4 +1,3 @@
-from .functions import Functions
 import random
 import math
 import numpy as np
@@ -31,7 +30,8 @@ class Node:
     # Gabor Filter Frequ. Int [0, 16]
     # Gabor Filter Orient. Int [−8, +8]
 
-    def __init__(self,num_inputs,num_outputs,graph_length,random_init=True):
+    def __init__(self,nb_functions,num_inputs,num_outputs,graph_length,random_init=True):
+        self.nb_functions = nb_functions
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.graph_length = graph_length
@@ -66,7 +66,7 @@ class Node:
         self.connection1 = connection1
 
     def getRandomFunction(self):
-        self.function = Functions.getRandomFunction()
+        self.function = random.randrange(1,1+self.nb_functions)
 
     def getRandomConnection0(self):
         try:
@@ -119,15 +119,15 @@ class Node:
     def getGaborFilterOrientation(self):
         return self.gaborFilterOrientation
 
-    def execute(self,value0,value1):
-        return Functions.execute(self.function,value0,value1,self.parameter0,self.parameter1,self.parameter2,self.gaborFilterFrequence,self.gaborFilterOrientation)
+    def execute(self,functions,value0,value1):
+        return functions.execute(self.function,value0,value1,self.parameter0,self.parameter1,self.parameter2,self.gaborFilterFrequence,self.gaborFilterOrientation)
 
 class Chromosome:
 
     FITNESS_MEAN_ERROR = 0
     FITNESS_MCC = 1
 
-    def __init__(self,num_inputs,num_outputs,graph_length,fitnessFunction):
+    def __init__(self,num_inputs,num_outputs,graph_length,fitnessFunction,functions):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.graph_length = graph_length
@@ -141,6 +141,7 @@ class Chromosome:
         self.fitness = None
         self.duration = 0.0
         self.fitnessFunction = fitnessFunction
+        self.functions = functions
 
     def fromFile(self,filename):
         file = open(filename,"r")
@@ -160,7 +161,7 @@ class Chromosome:
             if len(data)==1:
                 self.output_nodes.append(int(data[0]))
             else:
-                node = Node(self.num_inputs,self.num_outputs,i-1,False)
+                node = Node(self.functions.getNbFunction(),self.num_inputs,self.num_outputs,i-1,False)
                 node.setValues(int(data[0]),int(data[1]),int(data[2]),float(data[3]),int(data[4]),int(data[5]),int(data[6]),int(data[7]))
                 self.nodes.append(node)
 
@@ -170,7 +171,7 @@ class Chromosome:
 
     def random(self):
         for i in range(0, self.graph_length):
-            self.nodes.append(Node(self.num_inputs,self.num_outputs,i,True))
+            self.nodes.append(Node(self.functions.getNbFunction(),self.num_inputs,self.num_outputs,i,True))
 
         for i in range(0,self.num_outputs):
             self.output_nodes.append(random.randrange(1,self.graph_length))
@@ -395,7 +396,7 @@ class Chromosome:
                 if node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection0()>=self.num_inputs and nodes_to_check.count(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection0())==0:
                     nodes_to_check.append(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection0())
 
-                if Functions.needSecondArgument(self.nodes[node_to_check-self.num_inputs].getFunction()) and node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1()>=self.num_inputs and nodes_to_check.count(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1())==0:
+                if self.functions.needSecondArgument(self.nodes[node_to_check-self.num_inputs].getFunction()) and node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1()>=self.num_inputs and nodes_to_check.count(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1())==0:
                     nodes_to_check.append(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1())
 
             self.active_nodes_by_output[i] = list(set(self.active_nodes_by_output[i]))
@@ -440,7 +441,7 @@ class Chromosome:
                     self.inputs_index = (self.inputs_index+math.floor(self.nodes[i-self.num_inputs].getParameter0()))%self.num_inputs
                     self.nodes_value[i] = self.nodes_value[self.inputs_index]
                 else:
-                    self.nodes_value[i] = self.nodes[i-self.num_inputs].execute(self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection0()],self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection1()])
+                    self.nodes_value[i] = self.nodes[i-self.num_inputs].execute(self.functions,self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection0()],self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection1()])
 
                 if verbose:
                     print("Function "+str(self.nodes[i-self.num_inputs].getFunction())+" - %s seconds" % (time.time() - start_time))

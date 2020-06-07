@@ -15,7 +15,8 @@ class IslandProcess(Process):
 
 class Island:
 
-    def __init__(self,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv,fitnessFunction,calculate_parent_fitness):
+    def __init__(self,functions,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv,fitnessFunction,calculate_parent_fitness):
+        self.functions = functions
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.graph_length = graph_length
@@ -24,7 +25,7 @@ class Island:
         self.elambda = num_indiv - self.emu
         self.fitnessFunction = fitnessFunction
         self.calculate_parent_fitness = calculate_parent_fitness
-        self.parent = Chromosome(self.num_inputs,self.num_outputs,self.graph_length,1)
+        self.parent = Chromosome(self.num_inputs,self.num_outputs,self.graph_length,self.fitnessFunction,self.functions)
         self.childs = []
         self.best_chromosome = None
         self.processes = []
@@ -35,7 +36,7 @@ class Island:
             self.parent = copy.deepcopy(chromosome)
 
         for i in range(0,self.elambda):
-            self.childs.append(Chromosome(self.num_inputs,self.num_outputs,self.graph_length,self.fitnessFunction))
+            self.childs.append(Chromosome(self.num_inputs,self.num_outputs,self.graph_length,self.fitnessFunction,self.functions))
 
             if chromosome==None:
                 self.childs[i].random()
