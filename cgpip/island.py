@@ -15,7 +15,7 @@ class IslandProcess(Process):
 
 class Island:
 
-    def __init__(self,functions,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv,fitnessFunction,calculate_parent_fitness):
+    def __init__(self,functions,chromosome,num_inputs,num_outputs,graph_length,mutation_rate,num_indiv,fitnessFunction,mutationFunction,calculate_parent_fitness):
         self.functions = functions
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
@@ -24,6 +24,7 @@ class Island:
         self.emu = 1
         self.elambda = num_indiv - self.emu
         self.fitnessFunction = fitnessFunction
+        self.mutationFunction = mutationFunction
         self.calculate_parent_fitness = calculate_parent_fitness
         self.parent = Chromosome(self.num_inputs,self.num_outputs,self.graph_length,self.fitnessFunction,self.functions)
         self.childs = []
@@ -135,7 +136,7 @@ class Island:
             self.childs[i] = copy.deepcopy(self.parent)
         
         for i in range(0,self.elambda):
-            self.childs[i].goldman_mutate(self.mutation_rate)
+            self.childs[i].mutateFunction(self.mutationFunction,self.mutation_rate)
     
     def getBestChromosome(self):
         return self.best_chromosome

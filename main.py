@@ -89,7 +89,7 @@ def load_data_6_1_uint8(input_dir,output_dir,max_el):
 
 if __name__ == '__main__':
 
-    max_iterations = 3000
+    max_iterations = 300
     size_mutation = 2
     num_islands = 8
     num_indiv = 5
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     random.seed(7)
 
     if len(sys.argv)==1:
-        cgp = CGPIP(Functions,graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,batch_size)
+        cgp = CGPIP(Functions,graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,Chromosome.GOLDMAN_MUTATE,batch_size)
 
         if os.path.exists('./chromo.txt'):
             cgp.load_chromosome('./chromo.txt')

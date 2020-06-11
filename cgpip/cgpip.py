@@ -9,7 +9,7 @@ from multiprocessing import Queue, Process
 
 class CGPIP:
 
-    def __init__(self, functions, graph_length, mutation_rate, size_of_mutations, num_islands, num_indiv_island, sync_interval_island, max_iterations, chromosomeOptimization, islandOptimization, fitnessFunction, batch_size):
+    def __init__(self, functions, graph_length, mutation_rate, size_of_mutations, num_islands, num_indiv_island, sync_interval_island, max_iterations, chromosomeOptimization, islandOptimization, fitnessFunction, mutationFunction, batch_size):
         self.functions = functions
         self.graph_length = graph_length
         self.mutation_rate = mutation_rate
@@ -30,6 +30,7 @@ class CGPIP:
         self.chromosomeOptimization = chromosomeOptimization
         self.islandOptimization = islandOptimization
         self.fitnessFunction = fitnessFunction
+        self.mutationFunction = mutationFunction
         #np.seterr(all='ignore')
 
     def load_data(self,input_data, output_data, num_inputs, num_outputs):
@@ -84,7 +85,7 @@ class CGPIP:
 
         for i in range(0,self.num_islands):
             # create island
-            island = Island(self.functions,self.chromosome,self.num_inputs,self.num_outputs,self.graph_length,self.mutation_rate,self.num_indiv_island,self.fitnessFunction,self.nb_batch>1)
+            island = Island(self.functions,self.chromosome,self.num_inputs,self.num_outputs,self.graph_length,self.mutation_rate,self.num_indiv_island,self.fitnessFunction,self.mutationFunction,self.nb_batch>1)
             self.islands.append(island)
             if self.nb_batch==1:
                 island.updateParentFitness(self.inputs,self.outputs)

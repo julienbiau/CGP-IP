@@ -127,6 +127,11 @@ class Chromosome:
     FITNESS_MEAN_ERROR = 0
     FITNESS_MCC = 1
 
+    MUTATE = 2
+    GOLDMAN_MUTATE = 3
+    MUTATE_ONLY_PARAMETERS = 4
+    GOLDMAN_ONLY_PARAMETERS = 5
+
     def __init__(self,num_inputs,num_outputs,graph_length,fitnessFunction,functions):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
@@ -180,6 +185,16 @@ class Chromosome:
 
     def getOutputValues(self):
         return self.output_values
+
+    def mutateFunction(self,mutate_function,mutation_rate):
+        if mutate_function==self.MUTATE:
+            self.mutate(mutation_rate)
+        elif mutate_function==self.GOLDMAN_MUTATE:
+            self.goldman_mutate(mutation_rate)
+        elif mutate_function==self.MUTATE_ONLY_PARAMETERS:
+            self.mutate_only_parameters(mutation_rate)
+        elif mutate_function==self.GOLDMAN_ONLY_PARAMETERS:
+            self.goldman_mutate_only_parameters(mutation_rate)
         
     def mutate(self,mutation_rate):
         nb_mutations = math.floor((self.graph_length*8 + self.num_outputs)*mutation_rate)
@@ -253,6 +268,76 @@ class Chromosome:
                 # outputs
                 self.output_nodes[index-self.graph_length*8] = random.randrange(1,self.graph_length,1)
                 mutation = True
+
+            current_active_nodes = list(self.active_nodes)
+
+            self.updateActiveNodes()
+
+            if not mutation and not (current_active_nodes==self.active_nodes):
+                mutation = True
+
+            if mutation:
+                nb_mutations = nb_mutations - 1
+
+    def mutate_only_parameters(self,mutation_rate):
+        nb_mutations = math.floor((self.graph_length*7)*mutation_rate)
+
+        for i in range(0,nb_mutations):
+            index = random.randrange(0, self.graph_length*7, 1)
+
+            parameter = index % 7
+            node_index = int((index - parameter)/7)
+
+            # nodes
+            if parameter == 0:
+                self.nodes[node_index].getRandomConnection0()
+            elif parameter == 1:
+                self.nodes[node_index].getRandomConnection1()
+            elif parameter == 2:
+                self.nodes[node_index].getRandomParameter0()
+            elif parameter == 3:
+                self.nodes[node_index].getRandomParameter1()
+            elif parameter == 4:
+                self.nodes[node_index].getRandomParameter2()
+            elif parameter == 5:
+                self.nodes[node_index].getRandomGaborFilterFrequence()
+            elif parameter == 6:
+                self.nodes[node_index].getRandomGaborFilterOrientation()
+
+        self.updateActiveNodes()
+
+    def goldman_mutate_only_parameters(self,mutation_rate):
+        nb_mutations = math.floor((self.graph_length*7)*mutation_rate)
+
+        while nb_mutations>0:
+            mutation = False
+
+            index = random.randrange(0, self.graph_length*7, 1)
+
+            parameter = index % 7
+            node_index = int((index - parameter)/7)
+
+            try:
+                if self.active_nodes.index(node_index+self.num_inputs):
+                    mutation = True
+            except:
+                pass
+
+            # nodes
+            if parameter == 0:
+                self.nodes[node_index].getRandomConnection0()
+            elif parameter == 1:
+                self.nodes[node_index].getRandomConnection1()
+            elif parameter == 2:
+                self.nodes[node_index].getRandomParameter0()
+            elif parameter == 3:
+                self.nodes[node_index].getRandomParameter1()
+            elif parameter == 4:
+                self.nodes[node_index].getRandomParameter2()
+            elif parameter == 5:
+                self.nodes[node_index].getRandomGaborFilterFrequence()
+            elif parameter == 6:
+                self.nodes[node_index].getRandomGaborFilterOrientation()
 
             current_active_nodes = list(self.active_nodes)
 
