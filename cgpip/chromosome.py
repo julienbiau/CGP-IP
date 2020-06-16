@@ -526,7 +526,7 @@ class Chromosome:
                     self.inputs_index = (self.inputs_index+math.floor(self.nodes[i-self.num_inputs].getParameter0()))%self.num_inputs
                     self.nodes_value[i] = self.nodes_value[self.inputs_index]
                 else:
-                    self.nodes_value[i] = self.nodes[i-self.num_inputs].execute(self.functions,self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection0()],self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection1()])
+                    self.nodes_value[i] = self.nodes[i-self.num_inputs].execute(self.functions-3,self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection0()],self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection1()])
 
                 if verbose:
                     print("Function "+str(self.nodes[i-self.num_inputs].getFunction())+" - %s seconds" % (time.time() - start_time))

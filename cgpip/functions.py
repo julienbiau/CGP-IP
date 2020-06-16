@@ -22,7 +22,7 @@ class Functions:
         cls.classes.append(item)
 
         cls.indexes.append(cls.num_functions+item.getNbFunction())
-        cls.num_functions = item.getNbFunction()
+        cls.num_functions += item.getNbFunction()
 
     @classmethod
     def getNbFunction(cls):

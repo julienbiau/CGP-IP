@@ -1,20 +1,21 @@
 import matplotlib.pyplot as plt
 
-#from functions import Functions
-from supp_functions import SuppFunctions
+from functions import Functions
+from fct_std_uint8 import STD_UINT8
+#from supp_functions import SuppFunctions
 
 from skimage import data
 import time
 
 class FunctionViewer(object):
     def __init__(self):
-        self.function_bundle = SuppFunctions()
-        self.function_list = range(self.function_bundle.min_function_index, self.function_bundle.max_function_index+1)
+        Functions.add(STD_UINT8)
+        self.function_bundle = Functions
+        self.num_functions = Functions.getNbFunction()
         
-
     def run(self, img0, img1, p0, p1, p2, p3, p4):
-        fig, axs = plt.subplots(len(self.function_list), 3, figsize=(15, len(self.function_list)*3))
-        for i, function in enumerate(self.function_list):
+        fig, axs = plt.subplots(self.num_functions, 3, figsize=(15, self.num_functions*3))
+        for i, function in enumerate(range(1,self.num_functions)):
             start_time = time.time()
             img_out = self.function_bundle.execute(function, img0, img1, p0, p1, p2, p3, p4)
             print(function)
@@ -24,6 +25,7 @@ class FunctionViewer(object):
             axs[i, 1].imshow(img1, cmap=plt.get_cmap('gray'))
             axs[i, 2].imshow(img_out, cmap=plt.get_cmap('gray'))
             axs[i, 1].set_title('Function ' + str(function) + ', p0=' + str(p0)+ ', p1=' + str(p1)+ ', p2=' + str(p2)+ ', p0=' + str(p2)+ ', p3=' + str(p3))
+        print('done')
         plt.axis('off')
         plt.savefig('test.png', dpi=300, bbox_inches="tight")
 

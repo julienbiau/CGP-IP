@@ -43,13 +43,13 @@ class STD_UINT8:
     @classmethod
     def execute(cls, func, connection0, connection1, parameter0, parameter1, parameter2, gabor_filter_frequency, gabor_filter_orientation):
         # CONST
-        if func==4:
+        if func==1:
             return np.full(connection0.shape,fill_value=parameter0,dtype="uint8")
         # NOP
-        elif func==5:
+        elif func==2:
             return connection0
         # ADD connection0 connection1
-        elif func==6:
+        elif func==3:
             if True:
                 tmp = np.add(connection0,connection1,dtype="int16")
                 tmp[tmp>255] = 255
@@ -57,7 +57,7 @@ class STD_UINT8:
             else:
                 return np.add(connection0,connection1) # with overflow modulo
         # SUB connection0 connection1
-        elif func==7:
+        elif func==4:
             if True:
                 tmp = np.subtract(connection0,connection1,dtype="int16")
                 tmp[tmp<0] = 0
@@ -65,7 +65,7 @@ class STD_UINT8:
             else:
                 return np.subtract(connection0,connection1) # with overflow modulo
         # MUL connection0 connection1
-        elif func==8:
+        elif func==5:
             if True:
                 tmp = np.multiply(connection0,connection1,dtype="int16")
                 tmp[tmp>255] = 255
@@ -73,7 +73,7 @@ class STD_UINT8:
             else:
                 return np.multiply(connection0,connection1) # with overflow modulo
         # LOG connection0
-        elif func==9:
+        elif func==6:
             if True:
                 tmp = np.array(connection0, dtype="uint8")
                 tmp[tmp==0] = 1
@@ -81,7 +81,7 @@ class STD_UINT8:
             else:
                 return np.asarray(np.log(connection0), dtype="uint8") # with 0 warnings
         # EXP connection0
-        elif func==10:
+        elif func==7:
             if True:
                 tmp = np.exp(connection0, dtype="float64")
                 tmp[tmp>255] = 255
@@ -89,10 +89,10 @@ class STD_UINT8:
             else:
                 return np.asarray(np.exp(connection0), dtype="uint8") # inf => 0
         # SQRT connection0
-        elif func==11:
+        elif func==8:
             return np.asarray(np.sqrt(connection0), dtype="uint8")
         # ADDC connection0 parameter0
-        elif func==12:
+        elif func==9:
             if True:
                 tmp = np.int16(connection0) + parameter0
                 tmp[tmp>255] = 255
@@ -100,7 +100,7 @@ class STD_UINT8:
             else:
                 return np.asarray(connection0 + parameter0, dtype="uint8") # with overflow modulo
         # SUBC connection0 parameter0
-        elif func==13:
+        elif func==10:
             if True:
                 tmp = np.int16(connection0) - parameter0
                 tmp[tmp<0] = 0
@@ -108,7 +108,7 @@ class STD_UINT8:
             else:
                 return np.asarray(connection0 - parameter0, dtype="uint8") # with overflow modulo
         # MULLC connection0 parameter0
-        elif func==14:
+        elif func==11:
             if True:
                 tmp = np.int16(connection0) * parameter0
                 tmp[tmp>255] = 255
@@ -116,22 +116,22 @@ class STD_UINT8:
             else:
                 return np.asarray(connection0 * parameter0, dtype="uint8") # with overflow modulo
         # DILATE connection0
-        elif func==15:
+        elif func==12:
             return cv2.dilate(connection0,cls.ksize)
         # ERODE connection0
-        elif func==16:
+        elif func==13:
             return cv2.erode(connection0,cls.ksize)
         # LAPLACE connection0
-        elif func==17:
+        elif func==14:
             return cv2.Laplacian(connection0,cv2.CV_8U,cls.ksize)
         # CANNY connection0
-        elif func==18:
+        elif func==15:
             return cv2.Canny(connection0,100,200) # FIXED MIN MAX VALUES ?
         # GAUSS
-        elif func==19:
+        elif func==16:
             return cv2.GaussianBlur(connection0,cls.ksize,0)
         # GAUSS2 parameter1 parameter2
-        elif func==20:
+        elif func==17:
             x = abs(parameter1)
             y = abs(parameter2)
             if x%2==0:
@@ -140,103 +140,103 @@ class STD_UINT8:
                 y = y + 1
             return cv2.GaussianBlur(connection0,(abs(x),abs(y)),0)
         # MIN connection0 connection1
-        elif func==21:
+        elif func==18:
             return np.minimum(connection0,connection1)
         # MAX connection0 connection1
-        elif func==22:
+        elif func==19:
             return np.maximum(connection0,connection1)
         # AVG connection0 connection1
-        elif func==23:
+        elif func==20:
             return np.asarray(connection0/2+connection1/2, dtype="uint8")
         # ABSDIFFERENCE connection0 connection1
-        elif func==24:
+        elif func==21:
             return np.abs(connection0-connection1)
         # MINC connection0 parameter0
-        elif func==25:
+        elif func==22:
             return np.minimum(connection0,np.full(connection0.shape,fill_value=abs(parameter0),dtype="uint8"))
         # MAXC connection0 parameter0
-        elif func==26:
+        elif func==23:
             return np.maximum(connection0,np.full(connection0.shape,fill_value=abs(parameter0),dtype="uint8"))
         # NORMALIZE
-        elif func==27:
+        elif func==24:
             # Normalised [0,255] as integer
             return (255*(connection0 - np.min(connection0))/max(1,np.max(connection0))).astype("uint8")
         # SOBEL
-        elif func==28:
+        elif func==25:
             return cv2.Sobel(connection0,cv2.CV_8U,1,1,cls.ksize)
         # SOBELX
-        elif func==29:
+        elif func==26:
             return cv2.Sobel(connection0,cv2.CV_8U,1,0,cls.ksize)
         # SOBELY
-        elif func==30:
+        elif func==27:
             return cv2.Sobel(connection0,cv2.CV_8U,0,1,cls.ksize)
         # THRESHOLD connection0 parameter0
-        elif func==31:
+        elif func==28:
             retval, dst = cv2.threshold(connection0,abs(parameter0),0,cv2.THRESH_TRUNC)
             return dst
         # SMOOTHMEDIAN
-        elif func==32:
+        elif func==29:
             return cv2.medianBlur(connection0,cls.ksize[0])
         # SMOOTHBILATERAL
-        elif func==33:
+        elif func==30:
             return cv2.bilateralFilter(connection0,parameter1,parameter2,parameter2)
         # SMOOTHBLUR
-        elif func==34:
+        elif func==31:
             return cv2.blur(connection0,cls.ksize)
         # UNSHARPEN
-        elif func==35:
+        elif func==32:
             kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
             return cv2.filter2D(connection0, -1, kernel)
         # SHIFT
-        elif func==36:
+        elif func==33:
             num_rows, num_cols = connection0.shape[:2]
             translation_matrix = np.float32([ [1,0,parameter1], [0,1,parameter2] ])
             return cv2.warpAffine(connection0, translation_matrix, (num_cols, num_rows))
         # SHIFTUP
-        elif func==37:
+        elif func==34:
             num_rows, num_cols = connection0.shape[:2]
             translation_matrix = np.float32([ [1,0,0], [0,1,-1] ])
             return cv2.warpAffine(connection0, translation_matrix, (num_cols, num_rows))
         # SHIFTDOWN
-        elif func==38:
+        elif func==35:
             num_rows, num_cols = connection0.shape[:2]
             translation_matrix = np.float32([ [1,0,0], [0,1,1] ])
             return cv2.warpAffine(connection0, translation_matrix, (num_cols, num_rows))
         # SHIFTLEFT
-        elif func==39:
+        elif func==36:
             num_rows, num_cols = connection0.shape[:2]
             translation_matrix = np.float32([ [1,0,-1], [0,1,0] ])
             return cv2.warpAffine(connection0, translation_matrix, (num_cols, num_rows))
         # SHIFTRIGHT
-        elif func==40:
+        elif func==37:
             num_rows, num_cols = connection0.shape[:2]
             translation_matrix = np.float32([ [1,0,1], [0,1,0] ])
             return cv2.warpAffine(connection0, translation_matrix, (num_cols, num_rows))
         # RESCALE parameter0
-        elif func==41:
+        elif func==38:
             height, width = connection0.shape[:2] # TO CHECK +1 to only reduce
             return cv2.resize(cv2.resize(connection0, (int(width/(abs(parameter0)+1)), int(height/(abs(parameter0)+1))), interpolation = cv2.INTER_AREA) , (width, height), interpolation = cv2.INTER_AREA) 
         # GABOR
-        elif func==42:
+        elif func==39:
             g_kernel = cv2.getGaborKernel(cls.ksize, gabor_filter_frequency, gabor_filter_orientation, 10.0, 0.5) # CHECK 10 and 0.5 VALUES
             return cv2.filter2D(connection0, -1, g_kernel)
         # RESIZETHENGABOR
-        elif func==43:
+        elif func==40:
             height, width = connection0.shape[:2] # TO CHECK +1 to only reduce
             tmp = cv2.resize(cv2.resize(connection0, (int(width/(abs(parameter0)+1)), int(height/(abs(parameter0)+1))), interpolation = cv2.INTER_AREA) , (width, height), interpolation = cv2.INTER_AREA) 
             g_kernel = cv2.getGaborKernel(cls.ksize, gabor_filter_frequency, gabor_filter_orientation, 10.0, 0.5) # CHECK 10 and 0.5 VALUES
             return cv2.filter2D(tmp, -1, g_kernel)
         # MINVALUE
-        elif func==44:
+        elif func==41:
             return np.full(connection0.shape,fill_value=connection0.min(),dtype="uint8")
         # MAXVALUE
-        elif func==45:
+        elif func==42:
             return np.full(connection0.shape,fill_value=connection0.max(),dtype="uint8")
         # AVGVALUE
-        elif func==46:
+        elif func==43:
             return np.full(connection0.shape,fill_value=connection0.mean(),dtype="uint8")
         # LOCALMIN parameter1 parameter2
-        elif func==47:
+        elif func==44:
             height, width = connection0.shape[:2]
             x = abs(parameter1)
             y = abs(parameter2)
@@ -264,7 +264,7 @@ class STD_UINT8:
 
             return A_w.min(axis=(1,2)).reshape(connection0.shape)
         # LOCALMAX parameter1 parameter2
-        elif func==48:
+        elif func==45:
             height, width = connection0.shape[:2]
             x = abs(parameter1)
             y = abs(parameter2)
@@ -292,7 +292,7 @@ class STD_UINT8:
 
             return A_w.max(axis=(1,2)).reshape(connection0.shape)
         # LOCALAVG parameter1 parameter2
-        elif func==49:
+        elif func==46:
                 height, width = connection0.shape[:2]
                 x = abs(parameter1)
                 y = abs(parameter2)
@@ -321,7 +321,7 @@ class STD_UINT8:
 
                 return tmp
         # LOCALNORMALIZE parameter1 parameter2
-        elif func==50:
+        elif func==47:
             height, width = connection0.shape[:2]
             x = abs(parameter1)
             y = abs(parameter2)
