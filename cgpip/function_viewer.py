@@ -8,9 +8,8 @@ from skimage import data
 import time
 
 class FunctionViewer(object):
-    def __init__(self):
-        Functions.add(STD_UINT8)
-        self.function_bundle = Functions
+    def __init__(self,functions):
+        self.function_bundle = functions
         self.num_functions = Functions.getNbFunction()
         
     def run(self, img0, img1, p0, p1, p2, p3, p4):
@@ -30,7 +29,8 @@ class FunctionViewer(object):
         plt.savefig('test.png', dpi=300, bbox_inches="tight")
 
 if __name__ == "__main__":
+    Functions.add(STD_UINT8)
     src_img = data.astronaut()
     img0 = src_img[:, :, 0]
     img1 = src_img[:, :, 1]
-    FunctionViewer().run(img0, img1, 8, 8, 8, 0, 0)
+    FunctionViewer(Functions).run(img0, img1, 8, 8, 8, 0, 0)
