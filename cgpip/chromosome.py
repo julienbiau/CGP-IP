@@ -15,7 +15,7 @@ class ChromosomeProcess(Process):
 
     def run(self):
         start_time = time.time()
-        fitness = self.chromosome.calculateFitness(self.input_data,self.output_data)
+        fitness = self.chromosome.calculateFitness(self.input_data,self.output_data,False)
         duration = time.time() - start_time
         #print("--- %s seconds ---" % duration)
         self.queue.put((fitness, duration))
@@ -374,26 +374,32 @@ class Chromosome:
                 n_mask = np.ma.masked_equal(n,0).mask
                 p_mask = np.logical_not(n_mask)
 
+
                 tmp = nr * n_mask
                 tmp[tmp>0] = 1
                 fp = tmp.sum()
+                #print("FP: "+str(fp))
 
                 tn = int(n_mask.sum()-fp)
+                #print("TN: "+str(tn))
 
                 tmp = np.ma.masked_equal(nr,0).mask
 
                 fn = (tmp * p_mask).sum()
+                #print("FN: "+str(fn))
 
                 tmp = np.int16(self.output_values) - np.int16(output_data[i])
 
                 tmp2 = np.ma.masked_equal(tmp[0],0).mask
 
-                for j in range(1,len(tmp)):
-                    tmp2 = tmp2 * np.ma.masked_equal(tmp[j],0).mask
+                #for j in range(1,len(tmp)):
+                    #tmp2 = tmp2 * np.ma.masked_equal(tmp[j],0).mask
 
                 tp = (tmp2 * p_mask).sum()
+                #print("TP: "+str(tp))
 
                 fp = width*height - tn - fn - tp
+                #print("FP: "+str(fp))
 
                 mean = mean + self.MCC(tp,tn,fp,fn)
         else:
@@ -426,8 +432,8 @@ class Chromosome:
 
                 tmp2 = np.ma.masked_equal(tmp[0],0).mask
 
-                for j in range(1,len(tmp)):
-                    tmp2 = tmp2 * np.ma.masked_equal(tmp[j],0).mask
+                #for j in range(1,len(tmp)):
+                    #tmp2 = tmp2 * np.ma.masked_equal(tmp[j],0).mask
 
                 tp = (tmp2 * p_mask).sum()
 
@@ -481,7 +487,7 @@ class Chromosome:
                 if node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection0()>=self.num_inputs and nodes_to_check.count(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection0())==0:
                     nodes_to_check.append(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection0())
 
-                if self.functions.needSecondArgument(self.nodes[node_to_check-self.num_inputs].getFunction()) and node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1()>=self.num_inputs and nodes_to_check.count(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1())==0:
+                if self.nodes[node_to_check-self.num_inputs].getFunction()>3 and self.functions.needSecondArgument(self.nodes[node_to_check-self.num_inputs].getFunction()) and node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1()>=self.num_inputs and nodes_to_check.count(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1())==0:
                     nodes_to_check.append(node_to_check-self.nodes[node_to_check-self.num_inputs].getConnection1())
 
             self.active_nodes_by_output[i] = list(set(self.active_nodes_by_output[i]))
@@ -526,7 +532,7 @@ class Chromosome:
                     self.inputs_index = (self.inputs_index+math.floor(self.nodes[i-self.num_inputs].getParameter0()))%self.num_inputs
                     self.nodes_value[i] = self.nodes_value[self.inputs_index]
                 else:
-                    self.nodes_value[i] = self.nodes[i-self.num_inputs].execute(self.functions-3,self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection0()],self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection1()])
+                    self.nodes_value[i] = self.nodes[i-self.num_inputs].execute(self.functions,self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection0()],self.nodes_value[i-self.nodes[i-self.num_inputs].getConnection1()])
 
                 if verbose:
                     print("Function "+str(self.nodes[i-self.num_inputs].getFunction())+" - %s seconds" % (time.time() - start_time))
@@ -584,6 +590,17 @@ class Chromosome:
         for i in range(0,self.num_outputs):
             for j in range(0,len(self.active_nodes_by_output[i])):
                 print(str(i)+" "+str(self.active_nodes_by_output[i][j]))
+
+    def getActiveNodesValues(self):
+        values = []
+        for i in range(0,self.num_outputs):
+            tmp = {}
+            for j in range(0,len(self.active_nodes_by_output[i])):
+                #print(str(i)+" "+str(self.active_nodes_by_output[i][j]))
+                tmp[self.active_nodes_by_output[i][j]]=self.nodes_value[self.active_nodes_by_output[i][j]]
+            values.append(tmp)
+
+        return values
 
     def saveFile(self,filename):
         file = open(filename,"w")

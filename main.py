@@ -1,3 +1,4 @@
+
 from cgpip import CGPIP
 from cgpip import Chromosome
 from cgpip import Functions
@@ -7,85 +8,14 @@ import os
 import cv2
 import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import warnings
 import time
 from numpy.lib.stride_tricks import as_strided
 import random
+from math import ceil, sqrt, floor
 
 warnings.filterwarnings("error")
-
-def pool2d(A, kernel_size, stride, padding, pool_mode='max'):
-    '''
-    2D Pooling
-
-    Parameters:
-        A: input 2D array
-        kernel_size: int, the size of the window
-        stride: int, the stride of the window
-        padding: int, implicit zero paddings on both sides of the input
-        pool_mode: string, 'max' or 'avg'
-    '''
-    # Padding
-    A = np.pad(A, padding, mode='constant', constant_values=255)
-
-    print(A.shape)
-    # Window view of A
-    output_shape = ((A.shape[0] - kernel_size[0])//stride,
-                    (A.shape[1] - kernel_size[1])//stride)
-
-    print(output_shape)
-    #kernel_size = (kernel_size, kernel_size)
-    A_w = as_strided(A, shape = output_shape + kernel_size, 
-                        strides = (stride*A.strides[0],
-                                   stride*A.strides[1]) + A.strides)
-    #print(A_w.shape)
-    #print(A_w)
-    A_w = A_w.reshape(-1, *kernel_size)
-    print(A_w.shape)
-    # Return the result of pooling
-    if pool_mode == 'min':
-        return A_w.min(axis=(1,2)).reshape(output_shape)
-    elif pool_mode == 'max':
-        return A_w.max(axis=(1,2)).reshape(output_shape)
-    elif pool_mode == 'avg':
-        return A_w.mean(axis=(1,2)).reshape(output_shape)
-    elif pool_mode == 'norm':
-        #(255*(connection0[i,j] - np.min(connection0[yc:yd,xa:xb]))/max(1,np.max(connection0[yc:yd,xa:xb]))).astype("uint8")
-        maximums = A_w.max(axis=(1,2))
-        #return TODO
-
-def load_data_3_uint8(input_dir,output_dir,max_el):
-    inputs = []
-    outputs = []
-
-    filenames = sorted(os.listdir(input_dir))
-    for i in tqdm(range(max_el)):
-        input = cv2.imread(input_dir+"/"+filenames[i])
-        inputs.append([np.asarray(input[:,:,0],dtype="uint8"),np.asarray(input[:,:,1],dtype="uint8"),np.asarray(input[:,:,2],dtype="uint8")])
-
-    filenames = sorted(os.listdir(output_dir))
-    for i in tqdm(range(max_el)):
-        output = cv2.imread(output_dir+"/"+filenames[i])
-        outputs.append([np.asarray(output[:,:,0],dtype="uint8"),np.asarray(output[:,:,1],dtype="uint8"),np.asarray(output[:,:,2],dtype="uint8")])
-
-    return inputs, outputs
-
-def load_data_6_1_uint8(input_dir,output_dir,max_el):
-    inputs = []
-    outputs = []
-
-    filenames = sorted(os.listdir(input_dir))
-    for i in tqdm(range(max_el)):
-        input = cv2.imread(input_dir+"/"+filenames[i])
-        input2 = cv2.cvtColor(input,cv2.COLOR_RGB2HSV)
-        inputs.append([np.asarray(input[:,:,0],dtype="uint8"),np.asarray(input[:,:,1],dtype="uint8"),np.asarray(input[:,:,2],dtype="uint8"),np.asarray(input2[:,:,0],dtype="uint8"),np.asarray(input2[:,:,1],dtype="uint8"),np.asarray(input2[:,:,2],dtype="uint8")])
-
-    filenames = sorted(os.listdir(output_dir))
-    for i in tqdm(range(max_el)):
-        output = cv2.imread(output_dir+"/"+filenames[i])
-        outputs.append([np.asarray(output[:,:,1],dtype="uint8")])
-
-    return inputs, outputs
 
 if __name__ == '__main__':
 
@@ -95,69 +25,180 @@ if __name__ == '__main__':
     num_indiv = 5
     graph_length = 50
     mutation_rate = 0.05
-    sync_interval_island = 150
+    sync_interval_island = 100
     batch_size = 10
+    max_element = 200
 
     Functions.add(STD_UINT8)
+    Functions.setOutsideNbFunctions(3)
 
     random.seed(7)
 
     if len(sys.argv)==1:
-        cgp = CGPIP(Functions,graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,Chromosome.GOLDMAN_MUTATE,batch_size)
+        cgp = CGPIP(Functions,graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,Chromosome.MUTATE,batch_size)
 
         if os.path.exists('./chromo.txt'):
             cgp.load_chromosome('./chromo.txt')
 
-        inputs, outputs = load_data_6_1_uint8('../CGP-IP-DATA/lunar/images/render','../CGP-IP-DATA/lunar/images/clean',200)
-        
-        cgp.load_data(inputs, outputs, 6, 1)
+        cgp.load_input_data(cgp.COLOR_RGBHSV,max_element,'../CGP-IP-DATA/lunar/images/render')
+        cgp.load_output_data(cgp.COLOR_GRAYSCALE,max_element,'../CGP-IP-DATA/lunar/images/clean')
 
         cgp.run()
     elif sys.argv[1]=='display':
         if os.path.exists(sys.argv[2]):
-            chromosome = Chromosome(0,0,0,Chromosome.FITNESS_MCC)
+            chromosome = Chromosome(0,0,0,Chromosome.FITNESS_MCC,Functions)
             chromosome.fromFile(sys.argv[2])
 
+            chromosome.print()
             chromosome.printGraph()
 
-            cgp = CGPIP(graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC)
+            cgp = CGPIP(Functions,graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,Chromosome.GOLDMAN_MUTATE,batch_size)
 
-            inputs, outputs = load_data_6_1_uint8('../CGP-IP-DATA/lunar/images/render','../CGP-IP-DATA/lunar/images/clean',10)
-            cgp.load_data(inputs, outputs, 6, 1)
+            cgp.load_input_data(cgp.COLOR_RGBHSV,max_element,'../CGP-IP-DATA/lunar/images/render')
+            cgp.load_output_data(cgp.COLOR_GRAYSCALE,max_element,'../CGP-IP-DATA/lunar/images/clean')
 
-            for j in range(0,len(inputs)):
-                print(chromosome.calculateFitness([inputs[j]],[outputs[j]]))
+            inputs = cgp.getAllInputs()
+            outputs = cgp.getAllOutputs()
 
-                width, height = inputs[j][0].shape
+            for i in range(0,len(inputs)):
+                print(chromosome.calculateFitness([inputs[i]],[outputs[i]],True))
 
-                i = np.zeros([width,height,3],dtype=np.uint8)
-                i[:,:,0] = np.int8(inputs[j][0])
-                i[:,:,1] = np.int8(inputs[j][1])
-                i[:,:,2] = np.int8(inputs[j][2])
+                width, height = cgp.getInputShape()
 
-                o = np.zeros([width,height,3],dtype=np.uint8)
-                for k in range(0,len(outputs[j])):
-                    o[:,:,k] = np.int8(outputs[j][k])
+                if cgp.getInputType()==cgp.COLOR_GRAYSCALE:
+                    for j in range(0,cgp.getNumInputs()):
+                        image = cv2.cvtColor(inputs[i][j], cv2.COLOR_GRAY2BGR )
+                        cv2.imshow("input "+str(j), image)
+                elif cgp.getInputType()==cgp.COLOR_RGB:
+                    for j in range(0,int(cgp.getNumInputs()/3)):
+                        image = np.zeros([width,height,3],dtype=np.uint8)
+                        image[:,:,0] = np.int8(inputs[i][3*j+0])
+                        image[:,:,1] = np.int8(inputs[i][3*j+1])
+                        image[:,:,2] = np.int8(inputs[i][3*j+2])
+                        cv2.imshow("input "+str(j), image)
+                elif cgp.getInputType()==cgp.COLOR_RGBHSV:
+                    for j in range(0,int(cgp.getNumInputs()/6)):
+                        image = np.zeros([width,height,3],dtype=np.uint8)
+                        image[:,:,0] = np.int8(inputs[i][3*j+0])
+                        image[:,:,1] = np.int8(inputs[i][3*j+1])
+                        image[:,:,2] = np.int8(inputs[i][3*j+2])
+                        cv2.imshow("input "+str(j), image)
+                elif cgp.getInputType()==cgp.COLOR_HSV:
+                    for j in range(0,int(cgp.getNumInputs()/3)):
+                        image = np.zeros([width,height,3],dtype=np.uint8)
+                        image[:,:,0] = np.int8(inputs[i][3*j+0])
+                        image[:,:,1] = np.int8(inputs[i][3*j+1])
+                        image[:,:,2] = np.int8(inputs[i][3*j+2])
+                        image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR )
+                        cv2.imshow("input "+str(j), image)
 
-                output_values = chromosome.getOutputValues()
+                if cgp.getOutputType()==cgp.COLOR_GRAYSCALE:
+                    for j in range(0,cgp.getNumOutputs()):
+                        image = cv2.cvtColor(outputs[i][j], cv2.COLOR_GRAY2BGR )
+                        cv2.imshow("output "+str(j), image)
 
-                r = np.zeros([width,height,3],dtype=np.uint8)
-                for k in range(0,len(output_values)):
-                    r[:,:,k] = np.int8(output_values[k])
-                
-                print(i)
-                print(o)
-                print(r)
+                    output_values = chromosome.getOutputValues()
+                    for j in range(0,cgp.getNumOutputs()):
+                        image = cv2.cvtColor(output_values[j], cv2.COLOR_GRAY2BGR )
+                        cv2.imshow("result "+str(j), image)
 
-                cv2.imshow("input", i)
+                c = cv2.waitKey(0) & 0xff
+                if c == ord('q'):
+                    break
+    elif sys.argv[1]=='explain':
+        if os.path.exists(sys.argv[2]):
+            chromosome = Chromosome(0,0,0,Chromosome.FITNESS_MCC,Functions)
+            chromosome.fromFile(sys.argv[2])
 
-                cv2.imshow("output", o)
+            chromosome.print()
+            chromosome.printGraph()
 
-                cv2.imshow("result", r)
+            cgp = CGPIP(Functions,graph_length,mutation_rate,size_mutation,num_islands,num_indiv,sync_interval_island,max_iterations,True,False,Chromosome.FITNESS_MCC,Chromosome.GOLDMAN_MUTATE,batch_size)
 
-                cv2.waitKey(0)
+            cgp.load_input_data(cgp.COLOR_RGBHSV,max_element,'./tata_blob_min/input1','./tata_blob_min/input2')
+            cgp.load_output_data(cgp.COLOR_GRAYSCALE,max_element,'./tata_blob_min/output')
+
+            inputs = cgp.getAllInputs()
+            outputs = cgp.getAllOutputs()
+
+            for i in range(0,len(inputs)):
+                print(chromosome.calculateFitness([inputs[i]],[outputs[i]],True))
+
+                width, height = cgp.getInputShape()
+
+                if cgp.getInputType()==cgp.COLOR_GRAYSCALE:
+                    for j in range(0,cgp.getNumInputs()):
+                        image = cv2.cvtColor(inputs[i][j], cv2.COLOR_GRAY2BGR )
+                        cv2.imshow("input "+str(j), image)
+                elif cgp.getInputType()==cgp.COLOR_RGB:
+                    for j in range(0,int(cgp.getNumInputs()/3)):
+                        image = np.zeros([width,height,3],dtype=np.uint8)
+                        image[:,:,0] = np.int8(inputs[i][3*j+0])
+                        image[:,:,1] = np.int8(inputs[i][3*j+1])
+                        image[:,:,2] = np.int8(inputs[i][3*j+2])
+                        cv2.imshow("input "+str(j), image)
+                elif cgp.getInputType()==cgp.COLOR_RGBHSV:
+                    for j in range(0,int(cgp.getNumInputs()/6)):
+                        image = np.zeros([width,height,3],dtype=np.uint8)
+                        image[:,:,0] = np.int8(inputs[i][3*j+0])
+                        image[:,:,1] = np.int8(inputs[i][3*j+1])
+                        image[:,:,2] = np.int8(inputs[i][3*j+2])
+                        cv2.imshow("input "+str(j), image)
+                elif cgp.getInputType()==cgp.COLOR_HSV:
+                    for j in range(0,int(cgp.getNumInputs()/3)):
+                        image = np.zeros([width,height,3],dtype=np.uint8)
+                        image[:,:,0] = np.int8(inputs[i][3*j+0])
+                        image[:,:,1] = np.int8(inputs[i][3*j+1])
+                        image[:,:,2] = np.int8(inputs[i][3*j+2])
+                        image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR )
+                        cv2.imshow("input "+str(j), image)
+
+                if cgp.getOutputType()==cgp.COLOR_GRAYSCALE:
+                    for j in range(0,cgp.getNumOutputs()):
+                        image = cv2.cvtColor(outputs[i][j], cv2.COLOR_GRAY2BGR )
+                        cv2.imshow("output "+str(j), image)
+
+                    output_values = chromosome.getOutputValues()
+                    for j in range(0,cgp.getNumOutputs()):
+                        image = cv2.cvtColor(output_values[j], cv2.COLOR_GRAY2BGR )
+                        cv2.imshow("result "+str(j), image)
+
+                nodes = chromosome.getActiveNodesValues()
+                if False:
+                    for j in range(0,cgp.getNumOutputs()):
+                        for k in nodes[j]:
+                            image = cv2.cvtColor(nodes[j][k], cv2.COLOR_GRAY2BGR )
+                            cv2.imshow("node "+str(k), image)
+
+                    c = cv2.waitKey(0) & 0xff
+                    if c == ord('q'):
+                        break
+                else:
+                    cv2.waitKey(205)
+
+                    for j in range(0,cgp.getNumOutputs()):
+                        nb = len(nodes[j])
+                        cols = ceil(sqrt(nb))
+                        rows = ceil(nb/cols)
+                        print(str(cols)+" "+str(rows))
+                        fig, axs = plt.subplots(rows, cols)
+                        x = 0
+                        y = 0
+                        for k in nodes[j]:
+                            image = cv2.cvtColor(nodes[j][k], cv2.COLOR_GRAY2BGR )
+                            axs[y, x].imshow(image, cmap=plt.get_cmap('gray'))
+                            axs[y, x].set_title('Node '+str(k))
+                            axs[y, x].axis('off')
+                            x = x + 1
+                            if x >= cols:
+                                y = y + 1
+                                x = 0
+                        #fig.tight_layout()
+                        plt.subplots_adjust(left=0, right=1, top=0.95, bottom=0, wspace=0.14, hspace=0.14)
+                        plt.show(True)
+
     elif sys.argv[1]=='test':
-        chromosome = Chromosome(1,1,50,Chromosome.FITNESS_MCC)
+        chromosome = Chromosome(1,1,50,Chromosome.FITNESS_MCC,Functions)
         chromosome.random()
 
         input = np.ndarray((512,512),dtype="uint8")
@@ -172,10 +213,4 @@ if __name__ == '__main__':
         chromosome.setOutputNodes([1])
 
         chromosome.executeChromosome(inputs,True)
-
-        start_time = time.time()
-
-        pool2d(input, kernel_size=(abs(8)*2, abs(8)*2), stride=1, padding=abs(8), pool_mode='min')
-
-        print(time.time()-start_time)
 

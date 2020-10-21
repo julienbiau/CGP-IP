@@ -13,9 +13,15 @@ class Functions:
 
     num_functions = 0
 
+    outside_nb_functions = 0
+
     classes = []
 
     indexes = []
+
+    @classmethod
+    def setOutsideNbFunctions(cls,nb):
+        cls.outside_nb_functions = nb
 
     @classmethod
     def add(cls,item):
@@ -35,6 +41,8 @@ class Functions:
     @classmethod
     def needSecondArgument(cls,function):
         last = 0
+        function -= cls.outside_nb_functions
+
         for i in range(0,len(cls.indexes)):
             if function<=cls.indexes[i]:
                 return cls.classes[i].needSecondArgument(function-last)
@@ -43,6 +51,8 @@ class Functions:
     @classmethod
     def execute(cls, function, connection0, connection1, parameter0, parameter1, parameter2, gabor_filter_frequency, gabor_filter_orientation):
         last = 0
+        function -= cls.outside_nb_functions
+
         for i in range(0,len(cls.indexes)):
             if function<=cls.indexes[i]:
                 return cls.classes[i].execute(function-last,connection0,connection1,parameter0,parameter1,parameter2,gabor_filter_frequency,gabor_filter_orientation)

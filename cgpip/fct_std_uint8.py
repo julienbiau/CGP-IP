@@ -22,11 +22,11 @@ class STD_UINT8:
     # Gabor Filter Frequ. Int [0, 16]
     # Gabor Filter Orient. Int [−8, +8]
 
-    num_functions = 50
+    num_functions = 47
     ksize = (3,3)
     nb_processes = 16
 
-    two_arguments = [False,False,False,False,False,False,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,True,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False]
+    two_arguments = [False,False,False,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,True,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False]
 
     @classmethod
     def getNbFunction(cls):
@@ -172,7 +172,7 @@ class STD_UINT8:
             return cv2.Sobel(connection0,cv2.CV_8U,0,1,cls.ksize)
         # THRESHOLD connection0 parameter0
         elif func==28:
-            retval, dst = cv2.threshold(connection0,abs(parameter0),0,cv2.THRESH_TRUNC)
+            retval, dst = cv2.threshold(connection0,abs(parameter0),255,cv2.THRESH_BINARY)
             return dst
         # SMOOTHMEDIAN
         elif func==29:

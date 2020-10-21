@@ -5,9 +5,15 @@ import os
 import cv2
 import numpy as np
 import copy
+from tqdm import tqdm
 from multiprocessing import Queue, Process
 
 class CGPIP:
+
+    COLOR_RGB = 0
+    COLOR_GRAYSCALE = 1
+    COLOR_HSV = 2
+    COLOR_RGBHSV = 3
 
     def __init__(self, functions, graph_length, mutation_rate, size_of_mutations, num_islands, num_indiv_island, sync_interval_island, max_iterations, chromosomeOptimization, islandOptimization, fitnessFunction, mutationFunction, batch_size):
         self.functions = functions
@@ -25,6 +31,8 @@ class CGPIP:
         self.num_inputs = 0
         self.num_outputs = 0
         self.chromosome = None
+        self.input_shape = None
+        self.output_shape = None
         self.batch_size = batch_size
         self.nb_batch = 0
         self.chromosomeOptimization = chromosomeOptimization
@@ -47,6 +55,129 @@ class CGPIP:
 
         assert self.nb_batch * self.batch_size == len(self.inputs), 'incompatible batch_size'
 
+    def load_input_data(self, input_type, max_el, *args):
+        nb_inputs = len(args)
+
+        self.input_type = input_type
+
+        inputs = []
+        filenames = []
+        
+        image_type = cv2.IMREAD_COLOR
+        if input_type==self.COLOR_GRAYSCALE:
+            image_type = cv2.IMREAD_GRAYSCALE
+
+        for i in range(0,nb_inputs):
+            filenames.append(sorted(os.listdir(args[i])))
+        
+        for i in tqdm(range(max_el)):
+            tmp = []
+            for j in range(0,nb_inputs):
+                input = cv2.imread(args[j]+"/"+filenames[j][i], image_type)
+
+                if (input_type==self.COLOR_RGB or input_type==self.COLOR_RGBHSV):
+                    tmp.append(np.asarray(input[:,:,0],dtype="uint8"))
+                    tmp.append(np.asarray(input[:,:,1],dtype="uint8"))
+                    tmp.append(np.asarray(input[:,:,2],dtype="uint8"))
+                    if self.input_shape==None:
+                        self.input_shape = input[:,:,0].shape
+                    else:
+                        assert self.input_shape == input[:,:,0].shape
+                elif (input_type==self.COLOR_GRAYSCALE):
+                    tmp.append(np.asarray(input,dtype="uint8"))
+                    if self.input_shape==None:
+                        self.input_shape = input.shape
+                    else:
+                        assert self.input_shape == input.shape
+
+                if (input_type==self.COLOR_HSV or input_type==self.COLOR_RGBHSV):
+                    input = cv2.cvtColor(input,cv2.COLOR_RGB2HSV)
+                    tmp.append(np.asarray(input[:,:,0],dtype="uint8"))
+                    tmp.append(np.asarray(input[:,:,1],dtype="uint8"))
+                    tmp.append(np.asarray(input[:,:,2],dtype="uint8"))
+                    if self.input_shape==None:
+                        self.input_shape = input[:,:,0].shape
+                    else:
+                        assert self.input_shape == input[:,:,0].shape
+
+            inputs.append(tmp)
+
+        self.inputs = inputs
+
+        if input_type==self.COLOR_GRAYSCALE:
+            self.num_inputs = nb_inputs
+        elif input_type==self.COLOR_RGB or input_type==self.COLOR_HSV:
+            self.num_inputs = 3 * nb_inputs
+        else:
+            self.num_inputs = 6 * nb_inputs
+
+        self.nb_batch = len(self.inputs) / self.batch_size
+
+        assert self.nb_batch * self.batch_size == len(self.inputs), 'incompatible batch_size'
+
+    def load_output_data(self, output_type, max_el, *args):
+        assert output_type==self.COLOR_GRAYSCALE, 'invalid output type'
+
+        nb_outputs = len(args)
+
+        assert nb_outputs==1, 'only 1 output supported'
+
+        self.output_type = output_type
+
+        outputs = []
+        filenames = []
+        
+        image_type = cv2.IMREAD_COLOR
+        if output_type==self.COLOR_GRAYSCALE:
+            image_type = cv2.IMREAD_GRAYSCALE
+
+        for i in range(0,nb_outputs):
+            filenames.append(sorted(os.listdir(args[i])))
+        
+        for i in tqdm(range(max_el)):
+            tmp = []
+            for j in range(0,nb_outputs):
+                output = cv2.imread(args[j]+"/"+filenames[j][i], image_type)
+
+                if (output_type==self.COLOR_RGB or output_type==self.COLOR_RGBHSV):
+                    tmp.append(np.asarray(output[:,:,0],dtype="uint8"))
+                    tmp.append(np.asarray(output[:,:,1],dtype="uint8"))
+                    tmp.append(np.asarray(output[:,:,2],dtype="uint8"))
+                    if self.output_shape==None:
+                        self.output_shape = output[:,:,0].shape
+                    else:
+                        assert self.input_shape == output[:,:,0].shape
+
+                elif (output_type==self.COLOR_GRAYSCALE):
+                    tmp.append(np.asarray(output,dtype="uint8"))
+                    if self.output_shape==None:
+                        self.output_shape = output.shape
+                    else:
+                        assert self.input_shape == output.shape
+
+                if (output_type==self.COLOR_HSV or output_type==self.COLOR_RGBHSV):
+                    output = cv2.cvtColor(output,cv2.COLOR_RGB2HSV)
+                    tmp.append(np.asarray(output[:,:,0],dtype="uint8"))
+                    tmp.append(np.asarray(output[:,:,1],dtype="uint8"))
+                    tmp.append(np.asarray(output[:,:,2],dtype="uint8"))
+                    if self.output_shape==None:
+                        self.output_shape = output[:,:,0].shape
+                    else:
+                        assert self.input_shape == output[:,:,0].shape
+
+            outputs.append(tmp)
+
+        self.outputs = outputs
+
+        if output_type==self.COLOR_GRAYSCALE:
+            self.num_outputs = nb_outputs
+        elif output_type==self.COLOR_RGB or output_type==self.COLOR_HSV:
+            self.num_outputs = 3 * nb_outputs
+        else:
+            self.num_outputs = 6 * nb_outputs
+
+        self.data_loaded = True
+
     def getInputs(self):
         nb = int(self.num_run % self.nb_batch)
 
@@ -57,18 +188,36 @@ class CGPIP:
 
         return self.outputs[nb*self.batch_size:(nb+1)*self.batch_size]
 
+    def getAllInputs(self):
+        return self.inputs
+
+    def getAllOutputs(self):
+        return self.outputs
+
+    def getNumInputs(self):
+        return self.num_inputs
+
+    def getNumOutputs(self):
+        return self.num_outputs
+
+    def getInputShape(self):
+        return self.input_shape
+
+    def getOutputShape(self):
+        return self.output_shape
+
+    def getInputType(self):
+        return self.input_type
+
+    def getOutputType(self):
+        return self.output_type
+
     def load_chromosome(self,filename):
         self.chromosome = Chromosome(0,0,0,self.fitnessFunction,self.functions)
         self.chromosome.fromFile(filename)
 
     def set_parent_chromosome(self,chromosome):
         self.chromosome = chromosome
-
-    def getAllInputs(self):
-        return self.inputs
-
-    def getAllOutputs(self):
-        return self.outputs
 
     def run(self):
         if not self.data_loaded:
@@ -111,7 +260,7 @@ class CGPIP:
                     self.islands[j].waitForUpdateFitnessChromosome()
 
                     if self.num_run % 5 == 0:
-                        print("Island "+str(j)+" iterations "+str(self.num_run)+" fitness: "+str(self.islands[j].getBestChromosome().getFitness())+" active nodes: "+str(self.islands[j].getBestChromosome().getNbActiveNodes())+" duration: "+str(self.islands[j].getBestChromosome().getDuration()))
+                        print("Island "+str(j)+" iterations "+str(self.num_run)+" fitness: "+str(self.islands[j].getBestChromosome().getFitness())+" active nodes: "+str(self.islands[j].getBestChromosome().getNbActiveNodes())+" duration: "+str(int(1000*self.islands[j].getBestChromosome().getDuration()/self.batch_size))+" ms")
             else:
                 for j in range(0,self.num_islands):
                     self.islands[j].updateFitness(self.getInputs(),self.getOutputs())
@@ -124,6 +273,26 @@ class CGPIP:
             if self.sync_interval_island>0 and self.num_run % self.sync_interval_island == 0:
                 islands_best = []
                 # update all island with best chromosome
+
+                if self.nb_batch!=1:
+                    if self.islandOptimization==True:
+                        for j in range(0,self.num_islands):
+                            self.islands[j].updateFitnessIsland(self.getAllInputs(),self.getAllOutputs())
+
+                        for j in range(0,self.num_islands):
+                            self.islands[j].waitForUpdateFitnessIsland()
+
+                    elif self.chromosomeOptimization==True:
+                        for j in range(0,self.num_islands):
+                            self.islands[j].updateFitnessChromosome(self.getAllInputs(),self.getAllOutputs())
+
+                        for j in range(0,self.num_islands):
+                            self.islands[j].waitForUpdateFitnessChromosome()
+
+                    else:
+                        for j in range(0,self.num_islands):
+                            self.islands[j].updateFitness(self.getAllInputs(),self.getAllOutputs())
+
                 for j in range(0,self.num_islands):
                     islands_best.append(self.islands[j].getBestChromosome())
 

@@ -45,14 +45,14 @@ class Island:
                 self.childs[i] = copy.deepcopy(chromosome)
 
     def updateParentFitness(self,input_data,output_data):
-        self.parent.calculateFitness(input_data,output_data)
+        self.parent.calculateFitness(input_data,output_data,False)
 
     def updateFitness(self,input_data,output_data):
         if self.calculate_parent_fitness:
             self.updateParentFitness(input_data,output_data)
 
         for i in range(0,self.elambda):
-            self.childs[i].calculateFitness(input_data,output_data)
+            self.childs[i].calculateFitness(input_data,output_data,False)
 
         return self.setBestChromosome()
 
